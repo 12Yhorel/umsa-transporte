@@ -43,6 +43,10 @@ dist/
 build/
 public/qr-codes/*.png
 
+# Angular cache
+.angular/
+frontend/.angular/
+
 # Testing
 coverage/
 .nyc_output/
