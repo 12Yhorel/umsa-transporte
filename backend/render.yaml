@@ -1,0 +1,17 @@
+# Render Build Configuration
+# This file is used by Render to build the application
+
+# Build command
+build: npm install
+
+# Start command
+start: node server.js
+
+# Environment
+env: node
+
+# Health check
+healthCheckPath: /api/salud
+
+# Auto deploy
+autoDeploy: true

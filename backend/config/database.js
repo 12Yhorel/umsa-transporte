@@ -6,6 +6,7 @@ const configuracionBD = {
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'gestion_transporte_umsa',
+  port: process.env.DB_PORT || 3306,
   waitForConnections: true,
   connectionLimit: 20,
   queueLimit: 0,
@@ -14,7 +15,13 @@ const configuracionBD = {
   enableKeepAlive: true,
   keepAliveInitialDelay: 0,
   charset: 'utf8mb4',
-  connectTimeout: 10000
+  connectTimeout: 10000,
+  // Soporte para PlanetScale y otras bases de datos en la nube con SSL
+  ...(process.env.DB_SSL === 'true' && {
+    ssl: {
+      rejectUnauthorized: true
+    }
+  })
 };
 
 const pool = mysql.createPool(configuracionBD);
