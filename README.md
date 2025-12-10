@@ -1,65 +1,58 @@
-# Sistema de Gestión de Transporte - UMSA
+# Sistema de la Unidad de Transporte - UMSA
 
-Sistema completo de gestión de transporte para la Universidad Mayor de San Andrés (UMSA).
+Sistema completo de gestión para la Unidad de Transporte de la Universidad Mayor de San Andrés.
 
-## 🚀 Tecnologías
-
-- **Backend**: Node.js + Express + MySQL
-- **Frontend**: Angular 18 (Standalone Components)
-- **Autenticación**: JWT
-- **Email**: Nodemailer
-
-## 📦 Estructura
+## 📂 Estructura
 
 ```
-├── backend/          # API REST Node.js
-├── frontend/         # Aplicación Angular
-└── database_export.sql  # Base de datos
+umsa-transporte/
+├── backend/              # API REST (Node.js + Express + MySQL)
+├── frontend/             # App Web (Angular 18)
+├── database_export.sql   # Base de datos MySQL
+└── QUICK_START.md       # Guía de despliegue rápido
 ```
 
-## 🔧 Instalación Local
+## 🚀 Despliegue Rápido
+
+Sigue la guía **[QUICK_START.md](QUICK_START.md)** para desplegar en 15 minutos:
+
+- **Backend**: Render (gratis)
+- **Base de Datos**: PlanetScale MySQL (gratis)  
+- **Frontend**: Vercel (gratis)
+
+## 💻 Desarrollo Local
 
 ### Backend
 ```bash
 cd backend
 npm install
-# Configurar .env con tus credenciales
-npm start
+cp .env.example .env
+# Configura .env con tus credenciales
+npm run dev
 ```
 
 ### Frontend
 ```bash
 cd frontend
 npm install
-ng serve
+npm start
 ```
 
-## 🌐 Deploy
+### Base de Datos
+```bash
+mysql -u root -p < database_export.sql
+```
 
-Ver [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) para instrucciones completas de deploy en:
-- Railway (Backend + MySQL)
-- Vercel (Frontend)
+## 🔧 Stack Tecnológico
 
-## 📝 Características
-
-- ✅ Gestión de vehículos
-- ✅ Gestión de conductores
-- ✅ Sistema de reservas
-- ✅ Control de inventario
-- ✅ Registro de reparaciones
-- ✅ Gestión de usuarios y roles
-- ✅ Dashboard con estadísticas
-- ✅ Recuperación de contraseña por email
-- ✅ Códigos QR para vehículos
-- ✅ Generación de reportes PDF
-
-## 👥 Roles
-
-- **Administrador**: Acceso completo
-- **Secretaria**: Gestión de reservas y documentos
-- **Encargado**: Gestión operativa
-- **Solicitante**: Crear solicitudes de transporte
+- **Backend**: Node.js 18, Express, JWT, MySQL2
+- **Frontend**: Angular 18, TypeScript, SCSS
+- **Base de Datos**: MySQL 8.0
 
 ## 📧 Contacto
 
-Sistema desarrollado para la Unidad de Transporte - UMSA
+Email: yalvareza@fcpn.edu.bo
+
+---
+
+**Universidad Mayor de San Andrés** - Unidad de Transporte
