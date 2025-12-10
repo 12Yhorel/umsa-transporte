@@ -1,0 +1,225 @@
+<div class="module-container">
+  <div class="header">
+    <h2>Gestión de Reservas</h2>
+    <div class="header-actions">
+      <button class="btn-success" (click)="descargarReportePDF()">📄 Reporte PDF</button>
+      <button class="btn-primary" (click)="nuevo()">Nueva Reserva</button>
+      <button class="btn-secondary" (click)="irAlDashboard()">Volver</button>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <div class="filters-section">
+    <div class="search-box">
+      <input 
+        type="text" 
+        placeholder="Buscar reserva (motivo, destino)..." 
+        [ngModel]="busqueda"
+        (ngModelChange)="onBusquedaInput($event)"
+        class="search-input"
+      />
+    </div>
+
+    <div class="filter-group">
+      <label>Estado:</label>
+      <select [(ngModel)]="estadoFiltro" (ngModelChange)="onFiltroChange()">
+        <option *ngFor="let est of estados" [value]="est.valor">
+          {{ est.label }}
+        </option>
+      </select>
+    </div>
+
+    <button class="btn-clear" (click)="limpiarFiltros()">Limpiar</button>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" *ngIf="cargando">
+    <div class="spinner"></div>
+    <p>Cargando reservas...</p>
+  </div>
+
+  <!-- Error Message -->
+  <div class="error-message" *ngIf="errorMensaje && !cargando">
+    {{ errorMensaje }}
+  </div>
+
+  <!-- Tabla de Reservas -->
+  <div class="table-container" *ngIf="!showForm">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Vehículo</th>
+          <th>Conductor</th>
+          <th>Solicitante</th>
+          <th>Unidad</th>
+          <th>Fecha y Horario</th>
+          <th>Ruta</th>
+          <th>Motivo</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let r of reservas">
+          <td>{{ r.id }}</td>
+          <td>{{ r.vehiculo?.placa || '-' }}</td>
+          <td>{{ r.conductor ? (r.conductor.nombres + ' ' + r.conductor.apellidos) : 'Sin asignar' }}</td>
+          <td>{{ r.solicitante?.nombres || 'N/A' }}</td>
+          <td>{{ r.nombre_unidad || 'Sin especificar' }}</td>
+          <td>{{ r.fecha_reserva | date:'dd/MM/yyyy' }} {{ r.hora_inicio }} - {{ r.hora_fin }}</td>
+          <td>{{ r.origen }} → {{ r.destino }}</td>
+          <td>{{ r.motivo }}</td>
+          <td>
+            <span [class]="'badge ' + getEstadoBadgeClass(r.estado)">
+              {{ r.estado }}
+            </span>
+          </td>
+          <td class="actions">
+            <button class="btn-sm btn-edit" (click)="editar(r)" title="Editar">✏️</button>
+            <button 
+              *ngIf="r.estado === 'PENDIENTE'"
+              class="btn-sm btn-success" 
+              (click)="cambiarEstado(r, 'APROBADA')" 
+              title="Aprobar"
+            >
+              ✓
+            </button>
+            <button 
+              *ngIf="r.estado === 'PENDIENTE'"
+              class="btn-sm btn-danger" 
+              (click)="cambiarEstado(r, 'RECHAZADA')" 
+              title="Rechazar"
+            >
+              ✗
+            </button>
+            <button 
+              *ngIf="r.estado === 'APROBADA'"
+              class="btn-sm btn-secondary" 
+              (click)="cambiarEstado(r, 'COMPLETADA')" 
+              title="Completar"
+            >
+              ✔
+            </button>
+            <button class="btn-sm btn-danger" (click)="eliminar(r)" title="Eliminar">🗑️</button>
+          </td>
+        </tr>
+        <tr *ngIf="!cargando && reservas.length === 0">
+          <td colspan="10" class="empty-message">
+            No hay reservas registradas
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Paginación -->
+    <div class="pagination" *ngIf="paginacion && paginacion.totalPaginas > 1">
+      <button 
+        (click)="cambiarPagina(paginaActual - 1)" 
+        [disabled]="paginaActual <= 1"
+        class="btn-secondary"
+      >
+        Anterior
+      </button>
+      <span class="page-info">
+        Página {{ paginaActual }} de {{ paginacion.totalPaginas }} 
+        ({{ paginacion.totalElementos }} registros)
+      </span>
+      <button 
+        (click)="cambiarPagina(paginaActual + 1)" 
+        [disabled]="paginaActual >= paginacion.totalPaginas"
+        class="btn-secondary"
+      >
+        Siguiente
+      </button>
+    </div>
+  </div>
+
+  <!-- Formulario -->
+  <div class="form-container" *ngIf="showForm">
+    <h3>{{ form.id ? 'Editar' : 'Nueva' }} Reserva</h3>
+    <form>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Vehículo *</label>
+          <select [(ngModel)]="form.vehiculo_id" name="vehiculo_id" required>
+            <option [value]="undefined">Seleccione un vehículo...</option>
+            <option *ngFor="let vehiculo of vehiculos" [value]="vehiculo.id">
+              {{ vehiculo.placa }} - {{ vehiculo.marca }} {{ vehiculo.modelo }}
+            </option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Conductor</label>
+          <select [(ngModel)]="form.conductor_id" name="conductor_id">
+            <option [value]="undefined">Sin asignar</option>
+            <option *ngFor="let conductor of conductores" [value]="conductor.id">
+              {{ conductor.nombres }} {{ conductor.apellidos }} - Lic. {{ conductor.licencia_categoria }}
+            </option>
+          </select>
+          <small>Opcional - puede asignarse después</small>
+        </div>
+
+        <div class="form-group">
+          <label>Fecha de Reserva *</label>
+          <input type="date" [(ngModel)]="form.fecha_reserva" name="fecha_reserva" required />
+        </div>
+
+        <div class="form-group">
+          <label>Hora Inicio *</label>
+          <input type="time" [(ngModel)]="form.hora_inicio" name="hora_inicio" required />
+        </div>
+
+        <div class="form-group">
+          <label>Hora Fin *</label>
+          <input type="time" [(ngModel)]="form.hora_fin" name="hora_fin" required />
+        </div>
+
+        <div class="form-group" *ngIf="form.id">
+          <label>Estado</label>
+          <select [(ngModel)]="form.estado" name="estado">
+            <option *ngFor="let est of estados.slice(1)" [value]="est.valor">
+              {{ est.label }}
+            </option>
+          </select>
+        </div>
+
+        <div class="form-group full-width">
+          <label>Origen *</label>
+          <input type="text" [(ngModel)]="form.origen" name="origen" required 
+                 placeholder="Punto de partida" />
+        </div>
+
+        <div class="form-group full-width">
+          <label>Destino *</label>
+          <input type="text" [(ngModel)]="form.destino" name="destino" required 
+                 placeholder="Lugar de destino" />
+        </div>
+
+        <div class="form-group full-width">
+          <label>Nombre de la Unidad *</label>
+          <input type="text" [(ngModel)]="form.nombre_unidad" name="nombre_unidad" required 
+                 placeholder="Ej: Departamento de Sistemas, Facultad de Ingeniería, etc." />
+        </div>
+
+        <div class="form-group full-width">
+          <label>Motivo *</label>
+          <textarea [(ngModel)]="form.motivo" name="motivo" rows="2" required
+                    placeholder="Razón de la reserva"></textarea>
+        </div>
+
+        <div class="form-group full-width">
+          <label>Observaciones</label>
+          <textarea [(ngModel)]="form.observaciones" name="observaciones" rows="2"
+                    placeholder="Información adicional (opcional)"></textarea>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn-primary" (click)="guardar()">Guardar</button>
+        <button type="button" class="btn-secondary" (click)="cancelar()">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>

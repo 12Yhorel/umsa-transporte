@@ -1,0 +1,78 @@
+/* Estilos específicos del módulo de vehículos */
+/* La mayoría de estilos se heredan de styles.scss */
+
+// Estados del vehículo con colores personalizados
+.badge {
+  &.badge-disponible {
+    background: #d4edda;
+    color: #155724;
+  }
+
+  &.badge-en-uso {
+    background: #fff9c4;
+    color: #f57f17;
+  }
+
+  &.badge-mantenimiento {
+    background: #fff3e0;
+    color: #e65100;
+  }
+
+  &.badge-reparacion {
+    background: #ffebee;
+    color: #c62828;
+  }
+
+  &.badge-inactivo {
+    background: #e0e0e0;
+    color: #666;
+  }
+}
+
+// Información del vehículo
+.vehiculo-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  padding: 20px;
+  background: var(--light-gray);
+  border-radius: 8px;
+  margin-bottom: 20px;
+
+  .info-item {
+    strong {
+      display: block;
+      color: var(--dark-gray);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+
+    span {
+      display: block;
+      color: var(--text-color);
+      font-size: 1rem;
+    }
+  }
+}
+
+// Indicador de mantenimiento
+.mantenimiento-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+
+  &.mantenimiento-proximo {
+    background: #fff3cd;
+    color: #856404;
+  }
+
+  &.mantenimiento-urgente {
+    background: #f8d7da;
+    color: #721c24;
+  }
+}

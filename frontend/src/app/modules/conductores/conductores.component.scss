@@ -1,0 +1,55 @@
+/* Estilos específicos del módulo de conductores */
+/* La mayoría de estilos se heredan de styles.scss */
+
+// Estado de licencia
+.licencia-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+
+  &.vigente {
+    background: #d4edda;
+    color: #155724;
+  }
+
+  &.por-vencer {
+    background: #fff3cd;
+    color: #856404;
+  }
+
+  &.vencida {
+    background: #f8d7da;
+    color: #721c24;
+  }
+}
+
+// Información del conductor
+.conductor-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  padding: 20px;
+  background: var(--light-gray);
+  border-radius: 8px;
+  margin-bottom: 20px;
+
+  .info-item {
+    strong {
+      display: block;
+      color: var(--dark-gray);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+
+    span {
+      display: block;
+      color: var(--text-color);
+      font-size: 1rem;
+    }
+  }
+}

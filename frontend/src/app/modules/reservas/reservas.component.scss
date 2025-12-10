@@ -1,0 +1,62 @@
+/* Estilos específicos del módulo de reservas */
+/* La mayoría de estilos se heredan de styles.scss */
+
+// Estados de reserva con colores personalizados
+.badge {
+  &.badge-pendiente {
+    background: #fff3e0;
+    color: #e65100;
+  }
+
+  &.badge-aprobado {
+    background: #e3f2fd;
+    color: #1976d2;
+  }
+
+  &.badge-rechazado {
+    background: #ffebee;
+    color: #c62828;
+  }
+
+  &.badge-en-uso {
+    background: #fff9c4;
+    color: #f57f17;
+  }
+
+  &.badge-completado {
+    background: #d4edda;
+    color: #155724;
+  }
+
+  &.badge-cancelado {
+    background: #e0e0e0;
+    color: #666;
+  }
+}
+
+// Detalles de reserva
+.reserva-detalles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 15px;
+  padding: 20px;
+  background: var(--light-gray);
+  border-radius: 8px;
+  margin-bottom: 20px;
+
+  .detalle-item {
+    strong {
+      display: block;
+      color: var(--dark-gray);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+
+    span {
+      display: block;
+      color: var(--text-color);
+      font-size: 1rem;
+    }
+  }
+}

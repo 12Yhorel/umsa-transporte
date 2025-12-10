@@ -1,0 +1,373 @@
+<div class="module-container">
+  <div class="header">
+    <h2>Gestión de Reparaciones</h2>
+    <div class="header-actions">
+      <button class="btn-success" (click)="descargarReportePDF()" title="Descargar Reporte PDF">📄 Reporte PDF</button>
+      <button class="btn-primary" (click)="nuevo()">Nueva Reparación</button>
+      <button class="btn-secondary" (click)="irAlDashboard()">Volver</button>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <div class="filters-section">
+    <div class="filter-group">
+      <label>Estado:</label>
+      <select [(ngModel)]="estadoFiltro" (ngModelChange)="onFiltroChange()">
+        <option *ngFor="let est of estados" [value]="est.valor">
+          {{ est.label }}
+        </option>
+      </select>
+    </div>
+
+    <button class="btn-clear" (click)="limpiarFiltros()">Limpiar</button>
+  </div>
+
+  <div class="loading-overlay" *ngIf="cargando">
+    <div class="spinner"></div>
+    <p>Cargando reparaciones...</p>
+  </div>
+
+  <!-- Error Message -->
+  <div class="error-message" *ngIf="errorMensaje && !cargando">
+    {{ errorMensaje }}
+  </div>
+
+  <!-- Tabla de Reparaciones -->
+  <div class="table-container" *ngIf="!showForm">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Vehículo</th>
+          <th>Técnico</th>
+          <th>Descripción</th>
+          <th>Fecha Recepción</th>
+          <th>Fecha Est. Entrega</th>
+          <th>Costo (Bs)</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let r of reparaciones">
+          <td>{{ r.id }}</td>
+          <td>
+            <strong>{{ r.placa || ('ID: ' + r.vehiculo_id) }}</strong><br>
+            <small *ngIf="r.marca">{{ r.marca }} {{ r.modelo }}</small>
+          </td>
+          <td>{{ r.tecnico_nombre || '-' }}</td>
+          <td>{{ r.descripcion_problema || '-' }}</td>
+          <td>{{ r.fecha_recepcion | date:'dd/MM/yyyy' }}</td>
+          <td>{{ r.fecha_estimada_entrega ? (r.fecha_estimada_entrega | date:'dd/MM/yyyy') : '-' }}</td>
+          <td>{{ r.costo_total || 0 | number:'1.2-2' }}</td>
+          <td>
+            <span [class]="'badge ' + getEstadoBadgeClass(r.estado || 'RECIBIDO')">
+              {{ r.estado || 'RECIBIDO' }}
+            </span>
+          </td>
+          <td class="actions">
+            <button class="btn-sm btn-info" (click)="verSeguimiento(r)" title="Ver Seguimiento">📋</button>
+            <button class="btn-sm btn-success" (click)="avanzarEstado(r)" *ngIf="puedeAvanzar(r.estado || 'RECIBIDO')" title="Avanzar Estado">▶️</button>
+            <button class="btn-sm btn-edit" (click)="editar(r)" title="Editar">✏️</button>
+            <button class="btn-sm btn-danger" (click)="eliminar(r)" title="Eliminar">🗑️</button>
+          </td>
+        </tr>
+        <tr *ngIf="!cargando && reparaciones.length === 0">
+          <td colspan="9" class="empty-message">
+            No hay reparaciones registradas
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Paginación -->
+    <div class="pagination" *ngIf="paginacion && paginacion.totalPaginas > 1">
+      <button 
+        (click)="cambiarPagina(paginaActual - 1)" 
+        [disabled]="paginaActual <= 1"
+        class="btn-secondary"
+      >
+        Anterior
+      </button>
+      <span class="page-info">
+        Página {{ paginaActual }} de {{ paginacion.totalPaginas }} 
+        ({{ paginacion.totalElementos }} registros)
+      </span>
+      <button 
+        (click)="cambiarPagina(paginaActual + 1)" 
+        [disabled]="paginaActual >= paginacion.totalPaginas"
+        class="btn-secondary"
+      >
+        Siguiente
+      </button>
+    </div>
+  </div>
+
+  <!-- Formulario -->
+  <div class="form-container" *ngIf="showForm">
+    <h3>{{ form.id ? 'Editar' : 'Nueva' }} Reparación</h3>
+    <form>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Vehículo *</label>
+          <select [(ngModel)]="form.vehiculo_id" name="vehiculo_id" required>
+            <option [ngValue]="0">Seleccione un vehículo...</option>
+            <option *ngFor="let v of vehiculos" [ngValue]="v.id">
+              {{ v.placa }} - {{ v.marca }} {{ v.modelo }}
+            </option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Técnico *</label>
+          <select [(ngModel)]="form.tecnico_id" name="tecnico_id" required>
+            <option [ngValue]="0">Seleccione un técnico...</option>
+            <option *ngFor="let t of tecnicos" [ngValue]="t.id">
+              {{ t.nombres }} {{ t.apellidos }}
+            </option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Fecha Recepción *</label>
+          <input type="date" [(ngModel)]="form.fecha_recepcion" name="fecha_recepcion" required />
+        </div>
+
+        <div class="form-group">
+          <label>Fecha Estimada Entrega</label>
+          <input type="date" [(ngModel)]="form.fecha_estimada_entrega" name="fecha_estimada_entrega" />
+        </div>
+
+        <div class="form-group">
+          <label>Fecha Real Entrega</label>
+          <input type="date" [(ngModel)]="form.fecha_real_entrega" name="fecha_real_entrega" />
+        </div>
+
+        <div class="form-group">
+          <label>Estado *</label>
+          <select [(ngModel)]="form.estado" name="estado" required>
+            <option *ngFor="let est of estados" [value]="est.valor" [disabled]="!est.valor">
+              {{ est.label }}
+            </option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Costo Total (Bs) *</label>
+          <input type="number" step="0.01" [(ngModel)]="form.costo_total" name="costo_total" required />
+        </div>
+
+        <div class="form-group full-width">
+          <label>Descripción del Problema *</label>
+          <textarea [(ngModel)]="form.descripcion_problema" name="descripcion_problema" rows="3" required></textarea>
+        </div>
+
+        <div class="form-group full-width">
+          <label>Diagnóstico</label>
+          <textarea [(ngModel)]="form.diagnostico" name="diagnostico" rows="3"></textarea>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn-primary" (click)="guardar()">Guardar</button>
+        <button type="button" class="btn-secondary" (click)="cancelar()">Cancelar</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Modal de Seguimiento -->
+  <div class="modal-overlay" *ngIf="showSeguimiento" (click)="cerrarSeguimiento()">
+    <div class="modal-content seguimiento-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Seguimiento de Reparación #{{ reparacionSeleccionada?.id }}</h3>
+        <button class="btn-close" (click)="cerrarSeguimiento()">✕</button>
+      </div>
+
+      <div class="modal-body" *ngIf="reparacionSeleccionada">
+        <!-- Información del Vehículo -->
+        <div class="info-section">
+          <h4>Información del Vehículo</h4>
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="label">Placa:</span>
+              <span class="value">{{ reparacionSeleccionada.placa || 'N/A' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Marca/Modelo:</span>
+              <span class="value">{{ reparacionSeleccionada.marca }} {{ reparacionSeleccionada.modelo }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Técnico:</span>
+              <span class="value">{{ reparacionSeleccionada.tecnico_nombre || 'N/A' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Costo Total:</span>
+              <span class="value">{{ reparacionSeleccionada.costo_total || 0 | number:'1.2-2' }} Bs</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Timeline de Estados -->
+        <div class="timeline-section">
+          <h4>Progreso de Reparación</h4>
+          <div class="timeline">
+            <div class="timeline-item" 
+                 [class.completed]="getEstadoIndice(reparacionSeleccionada.estado || 'RECIBIDO') >= 0"
+                 [class.active]="(reparacionSeleccionada.estado || 'RECIBIDO') === 'RECIBIDO'">
+              <div class="timeline-marker">
+                <span class="icon">📥</span>
+              </div>
+              <div class="timeline-content">
+                <h5>Recibido</h5>
+                <p class="date">{{ reparacionSeleccionada.fecha_recepcion | date:'dd/MM/yyyy' }}</p>
+              </div>
+            </div>
+
+            <div class="timeline-item" 
+                 [class.completed]="getEstadoIndice(reparacionSeleccionada.estado || 'RECIBIDO') >= 1"
+                 [class.active]="(reparacionSeleccionada.estado || 'RECIBIDO') === 'DIAGNOSTICO'">
+              <div class="timeline-marker">
+                <span class="icon">🔍</span>
+              </div>
+              <div class="timeline-content">
+                <h5>Diagnóstico</h5>
+                <p class="description" *ngIf="reparacionSeleccionada.diagnostico">{{ reparacionSeleccionada.diagnostico }}</p>
+              </div>
+            </div>
+
+            <div class="timeline-item" 
+                 [class.completed]="getEstadoIndice(reparacionSeleccionada.estado || 'RECIBIDO') >= 2"
+                 [class.active]="(reparacionSeleccionada.estado || 'RECIBIDO') === 'EN_REPARACION'">
+              <div class="timeline-marker">
+                <span class="icon">🔧</span>
+              </div>
+              <div class="timeline-content">
+                <h5>En Reparación</h5>
+                <p class="description">Trabajos en proceso</p>
+              </div>
+            </div>
+
+            <div class="timeline-item" 
+                 [class.completed]="getEstadoIndice(reparacionSeleccionada.estado || 'RECIBIDO') >= 3"
+                 [class.active]="(reparacionSeleccionada.estado || 'RECIBIDO') === 'TERMINADO'">
+              <div class="timeline-marker">
+                <span class="icon">✅</span>
+              </div>
+              <div class="timeline-content">
+                <h5>Terminado</h5>
+                <p class="date" *ngIf="reparacionSeleccionada.fecha_real_entrega">{{ reparacionSeleccionada.fecha_real_entrega | date:'dd/MM/yyyy' }}</p>
+              </div>
+            </div>
+
+            <div class="timeline-item" 
+                 [class.completed]="getEstadoIndice(reparacionSeleccionada.estado || 'RECIBIDO') >= 4"
+                 [class.active]="(reparacionSeleccionada.estado || 'RECIBIDO') === 'ENTREGADO'">
+              <div class="timeline-marker">
+                <span class="icon">🚗</span>
+              </div>
+              <div class="timeline-content">
+                <h5>Entregado</h5>
+                <p class="date" *ngIf="reparacionSeleccionada.fecha_real_entrega">{{ reparacionSeleccionada.fecha_real_entrega | date:'dd/MM/yyyy' }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Descripción del Problema -->
+        <div class="info-section">
+          <h4>Descripción del Problema</h4>
+          <p class="problem-description">{{ reparacionSeleccionada.descripcion_problema || 'Sin descripción' }}</p>
+        </div>
+
+        <!-- Repuestos Utilizados -->
+        <div class="info-section">
+          <h4>Repuestos Utilizados</h4>
+          <div *ngIf="cargandoRepuestos" class="loading-message">
+            Cargando repuestos...
+          </div>
+          <div *ngIf="!cargandoRepuestos && repuestosUtilizados.length === 0" class="empty-message">
+            No se han registrado repuestos para esta reparación
+          </div>
+          <table class="repuestos-table" *ngIf="!cargandoRepuestos && repuestosUtilizados.length > 0">
+            <thead>
+              <tr>
+                <th>Repuesto</th>
+                <th>Cantidad</th>
+                <th>Costo Unitario</th>
+                <th>Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let rep of repuestosUtilizados">
+                <td>{{ rep.nombre_item }}</td>
+                <td>{{ rep.cantidad }}</td>
+                <td>{{ rep.costo_unitario | number:'1.2-2' }} Bs</td>
+                <td>{{ (rep.cantidad * rep.costo_unitario) | number:'1.2-2' }} Bs</td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colspan="3" style="text-align: right;"><strong>Total Repuestos:</strong></td>
+                <td><strong>{{ calcularTotalRepuestos() | number:'1.2-2' }} Bs</strong></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <!-- Botón para Avanzar Estado -->
+        <div class="actions-section" *ngIf="puedeAvanzar(reparacionSeleccionada.estado || 'RECIBIDO')">
+          <button class="btn-primary" (click)="avanzarEstado(reparacionSeleccionada)">
+            Avanzar al Siguiente Estado
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Cambio de Estado -->
+  <div class="modal-overlay" *ngIf="showCambioEstado" (click)="cancelarCambioEstado()">
+    <div class="modal-content" (click)="$event.stopPropagation()" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3>Cambiar Estado de Reparación</h3>
+        <button class="btn-close" (click)="cancelarCambioEstado()">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="info-section" style="margin-bottom: 20px;">
+          <p><strong>Estado actual:</strong> {{ getNombreEstado(formCambioEstado.reparacion?.estado) }}</p>
+          <p><strong>Nuevo estado:</strong> {{ getNombreEstado(formCambioEstado.nuevoEstado) }}</p>
+          <p><strong>Vehículo:</strong> {{ formCambioEstado.reparacion?.placa }} - {{ formCambioEstado.reparacion?.marca }} {{ formCambioEstado.reparacion?.modelo }}</p>
+        </div>
+
+        <form>
+          <div class="form-group">
+            <label>Observaciones del cambio de estado *</label>
+            <textarea 
+              [(ngModel)]="formCambioEstado.observaciones" 
+              name="observaciones" 
+              rows="4" 
+              placeholder="Ingrese las observaciones o detalles sobre el cambio de estado..."
+              required
+            ></textarea>
+          </div>
+
+          <div class="form-group" *ngIf="formCambioEstado.nuevoEstado === 'TERMINADO' || formCambioEstado.nuevoEstado === 'ENTREGADO'">
+            <label>Fecha Real de Entrega *</label>
+            <input 
+              type="date" 
+              [(ngModel)]="formCambioEstado.fecha_real_entrega" 
+              name="fecha_real_entrega" 
+              required 
+            />
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn-secondary" (click)="cancelarCambioEstado()">Cancelar</button>
+            <button type="button" class="btn-primary" (click)="confirmarCambioEstado()">Confirmar Cambio</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+

@@ -1,0 +1,261 @@
+/* Estilos específicos del módulo de reparaciones */
+/* La mayoría de estilos se heredan de styles.scss */
+
+// Estados de reparación con colores personalizados
+.badge {
+  &.badge-recibido {
+    background: #e3f2fd;
+    color: #1976d2;
+  }
+
+  &.badge-diagnostico {
+    background: #fff3e0;
+    color: #e65100;
+  }
+
+  &.badge-en-reparacion {
+    background: #fff9c4;
+    color: #f57f17;
+  }
+
+  &.badge-terminado {
+    background: #c8e6c9;
+    color: #388e3c;
+  }
+
+  &.badge-entregado {
+    background: #d4edda;
+    color: #155724;
+  }
+}
+
+// Timeline de seguimiento
+.timeline {
+  position: relative;
+  margin: 30px 0;
+  padding-left: 40px;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #e0e0e0;
+  }
+}
+
+.timeline-item {
+  position: relative;
+  margin-bottom: 30px;
+  padding-bottom: 30px;
+
+  &:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  .timeline-marker {
+    position: absolute;
+    left: -29px;
+    top: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: white;
+    border: 3px solid #e0e0e0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    z-index: 1;
+  }
+
+  &.completed {
+    .timeline-marker {
+      background: var(--success-color);
+      border-color: var(--success-color);
+      color: white;
+    }
+
+    .timeline-content h4 {
+      color: var(--success-color);
+    }
+  }
+
+  &.active {
+    .timeline-marker {
+      background: var(--primary-color);
+      border-color: var(--primary-color);
+      color: white;
+      animation: pulse 2s infinite;
+    }
+
+    .timeline-content h4 {
+      color: var(--primary-color);
+      font-weight: 700;
+    }
+  }
+
+  .timeline-content {
+    h4 {
+      margin: 0 0 5px 0;
+      font-size: 1rem;
+      color: var(--dark-gray);
+    }
+
+    p {
+      margin: 0;
+      font-size: 0.875rem;
+      color: var(--dark-gray);
+    }
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(26, 84, 144, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(26, 84, 144, 0);
+  }
+}
+
+// Sección de información del vehículo en el modal
+.vehicle-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  margin: 20px 0;
+  padding: 20px;
+  background: var(--light-gray);
+  border-radius: 8px;
+
+  .info-item {
+    strong {
+      display: block;
+      color: var(--dark-gray);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+      letter-spacing: 0.5px;
+    }
+
+    span {
+      display: block;
+      color: var(--text-color);
+      font-size: 1rem;
+      font-weight: 500;
+    }
+  }
+}
+
+// Tabla de repuestos en el modal de seguimiento
+.repuestos-table {
+  width: 100%;
+  margin-top: 20px;
+  border-collapse: collapse;
+
+  thead {
+    background: var(--light-gray);
+
+    th {
+      padding: 12px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 0.875rem;
+      color: var(--text-color);
+      border-bottom: 2px solid var(--medium-gray);
+    }
+  }
+
+  tbody {
+    tr {
+      border-bottom: 1px solid var(--medium-gray);
+
+      &:hover {
+        background: #fafafa;
+      }
+
+      &:last-child {
+        border-bottom: none;
+      }
+    }
+
+    td {
+      padding: 10px 12px;
+      font-size: 0.875rem;
+      color: var(--dark-gray);
+    }
+  }
+
+  tfoot {
+    tr {
+      border-top: 2px solid var(--text-color);
+      font-weight: 700;
+
+      td {
+        padding: 12px;
+        font-size: 1rem;
+        color: var(--text-color);
+      }
+    }
+  }
+}
+
+// Modal de cambio de estado
+.estado-info {
+  padding: 15px;
+  background: var(--light-gray);
+  border-radius: 8px;
+  margin-bottom: 20px;
+
+  p {
+    margin: 5px 0;
+    font-size: 0.875rem;
+
+    strong {
+      color: var(--text-color);
+    }
+  }
+
+  .badge {
+    margin-left: 10px;
+  }
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .timeline {
+    padding-left: 30px;
+
+    &::before {
+      left: 10px;
+    }
+  }
+
+  .timeline-item {
+    .timeline-marker {
+      left: -24px;
+      width: 28px;
+      height: 28px;
+      font-size: 12px;
+    }
+  }
+
+  .vehicle-info {
+    grid-template-columns: 1fr;
+  }
+
+  .repuestos-table {
+    font-size: 0.75rem;
+
+    thead th,
+    tbody td,
+    tfoot td {
+      padding: 8px;
+    }
+  }
+}
+

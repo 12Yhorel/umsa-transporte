@@ -1,0 +1,58 @@
+/* Estilos específicos del módulo de inventario */
+/* La mayoría de estilos se heredan de styles.scss */
+
+// Estilos para items desactivados
+.item-desactivado {
+  opacity: 0.6;
+  background: #f8f8f8 !important;
+  
+  td {
+    color: #999 !important;
+  }
+}
+
+// Indicadores de stock
+.stock-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+
+  &.stock-bajo {
+    background: #fff3cd;
+    color: #856404;
+  }
+
+  &.stock-critico {
+    background: #f8d7da;
+    color: #721c24;
+  }
+
+  &.stock-normal {
+    background: #d4edda;
+    color: #155724;
+  }
+}
+
+// Código QR
+.qr-code-display {
+  text-align: center;
+  padding: 10px;
+  
+  img {
+    max-width: 200px;
+    border: 2px solid var(--border-color);
+    border-radius: 4px;
+    padding: 10px;
+    background: white;
+  }
+  
+  p {
+    margin-top: 10px;
+    font-size: 0.875rem;
+    color: var(--dark-gray);
+  }
+}

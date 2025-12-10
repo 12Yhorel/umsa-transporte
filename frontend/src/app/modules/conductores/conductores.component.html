@@ -1,0 +1,183 @@
+<div class="module-container">
+  <div class="header">
+    <h2>Gestión de Conductores</h2>
+    <div class="header-actions">
+      <button class="btn-success" (click)="descargarReportePDF()">📄 Reporte PDF</button>
+      <button class="btn-primary" (click)="nuevo()">Nuevo Conductor</button>
+      <button class="btn-secondary" (click)="irAlDashboard()">Volver</button>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <div class="filters-section">
+    <div class="search-box">
+      <input 
+        type="text" 
+        placeholder="Buscar conductor (nombre, apellidos, licencia)..." 
+        [ngModel]="busqueda"
+        (ngModelChange)="onBusquedaInput($event)"
+        class="search-input"
+      />
+    </div>
+
+    <div class="filter-group">
+      <label>Estado:</label>
+      <select [(ngModel)]="habilitadoFiltro" (ngModelChange)="onFiltroChange()">
+        <option *ngFor="let opt of opcionesHabilitado" [value]="opt.valor">
+          {{ opt.label }}
+        </option>
+      </select>
+    </div>
+
+    <button class="btn-clear" (click)="limpiarFiltros()">Limpiar</button>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" *ngIf="cargando">
+    <div class="spinner"></div>
+    <p>Cargando conductores...</p>
+  </div>
+
+  <!-- Error Message -->
+  <div class="error-message" *ngIf="errorMensaje && !cargando">
+    {{ errorMensaje }}
+  </div>
+
+  <!-- Tabla de Conductores -->
+  <div class="table-container" *ngIf="!showForm">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Nombre Completo</th>
+          <th>Licencia</th>
+          <th>Categoría</th>
+          <th>Vencimiento</th>
+          <th>Estado Licencia</th>
+          <th>Teléfono</th>
+          <th>Email</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let c of conductores">
+          <td>{{ c.nombres }} {{ c.apellidos }}</td>
+          <td>{{ c.licencia_numero }}</td>
+          <td><span class="badge badge-info">{{ c.licencia_categoria }}</span></td>
+          <td>{{ c.licencia_vencimiento | date:'dd/MM/yyyy' }}</td>
+          <td>
+            <span [class]="'badge ' + getLicenciaClass(c)">
+              {{ getLicenciaTexto(c) }}
+            </span>
+          </td>
+          <td>{{ c.telefono || c.telefono_usuario || '-' }}</td>
+          <td>{{ c.email || '-' }}</td>
+          <td>
+            <span [class]="'badge ' + (c.habilitado ? 'badge-success' : 'badge-secondary')">
+              {{ c.habilitado ? 'Habilitado' : 'Deshabilitado' }}
+            </span>
+          </td>
+          <td class="actions">
+            <button class="btn-sm btn-edit" (click)="editar(c)" title="Editar">✏️</button>
+            <button 
+              class="btn-sm" 
+              [class.btn-success]="!c.habilitado"
+              [class.btn-warning]="c.habilitado"
+              (click)="toggleHabilitado(c)" 
+              [title]="c.habilitado ? 'Deshabilitar' : 'Habilitar'"
+            >
+              {{ c.habilitado ? '🚫' : '✅' }}
+            </button>
+            <button class="btn-sm btn-danger" (click)="eliminar(c)" title="Eliminar">🗑️</button>
+          </td>
+        </tr>
+        <tr *ngIf="!cargando && conductores.length === 0">
+          <td colspan="9" class="empty-message">
+            No hay conductores registrados
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Paginación -->
+    <div class="pagination" *ngIf="paginacion && paginacion.totalPaginas > 1">
+      <button 
+        (click)="cambiarPagina(paginaActual - 1)" 
+        [disabled]="paginaActual <= 1"
+        class="btn-secondary"
+      >
+        Anterior
+      </button>
+      <span class="page-info">
+        Página {{ paginaActual }} de {{ paginacion.totalPaginas }} 
+        ({{ paginacion.totalElementos }} registros)
+      </span>
+      <button 
+        (click)="cambiarPagina(paginaActual + 1)" 
+        [disabled]="paginaActual >= paginacion.totalPaginas"
+        class="btn-secondary"
+      >
+        Siguiente
+      </button>
+    </div>
+  </div>
+
+  <!-- Formulario -->
+  <div class="form-container" *ngIf="showForm">
+    <h3>{{ form.id ? 'Editar' : 'Nuevo' }} Conductor</h3>
+    <form>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Usuario *</label>
+          <select [(ngModel)]="form.usuario_id" name="usuario_id" required [disabled]="!!form.id">
+            <option [value]="undefined">Seleccione un usuario...</option>
+            <option *ngFor="let usuario of usuarios" [value]="usuario.id">
+              {{ usuario.nombres }} {{ usuario.apellidos }} - {{ usuario.email }}
+            </option>
+          </select>
+          <small *ngIf="!form.id">Seleccione el usuario que será conductor</small>
+          <small *ngIf="form.id">El usuario no puede modificarse</small>
+        </div>
+
+        <div class="form-group">
+          <label>Número de Licencia *</label>
+          <input type="text" [(ngModel)]="form.licencia_numero" name="licencia_numero" required 
+                 placeholder="Ej: 123456789" />
+        </div>
+
+        <div class="form-group">
+          <label>Categoría de Licencia *</label>
+          <select [(ngModel)]="form.licencia_categoria" name="licencia_categoria" required>
+            <option [value]="undefined">Seleccione una categoría...</option>
+            <option *ngFor="let cat of categorias" [value]="cat.valor">{{ cat.label }}</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Fecha de Vencimiento *</label>
+          <input type="date" [(ngModel)]="form.licencia_vencimiento" name="licencia_vencimiento" required />
+          <small>Debe ser una fecha futura</small>
+        </div>
+
+        <div class="form-group">
+          <label>Teléfono</label>
+          <input type="tel" [(ngModel)]="form.telefono" name="telefono" 
+                 placeholder="Ej: 70123456" />
+        </div>
+
+        <div class="form-group">
+          <label>Estado</label>
+          <div class="checkbox-group">
+            <input type="checkbox" [(ngModel)]="form.habilitado" name="habilitado" id="habilitado" />
+            <label for="habilitado">Habilitado</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn-primary" (click)="guardar()">Guardar</button>
+        <button type="button" class="btn-secondary" (click)="cancelar()">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>

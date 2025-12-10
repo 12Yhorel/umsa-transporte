@@ -1,0 +1,191 @@
+<div class="module-container">
+  <div class="header">
+    <h2>Gestión de Vehículos</h2>
+    <div class="header-actions">
+      <button class="btn-success" (click)="descargarReportePDF()">
+        📄 Reporte PDF
+      </button>
+      <button class="btn-primary" (click)="nuevo()">
+        + Nuevo Vehículo
+      </button>
+      <button class="btn-secondary" (click)="irAlDashboard()">
+        Volver
+      </button>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <div class="card filters-card" *ngIf="!showForm">
+    <div class="card-body">
+      <div class="filters-grid">
+        <div class="filter-item">
+          <label>Buscar (Placa, Marca, Modelo)</label>
+          <input 
+            type="text" 
+            class="form-control" 
+            [ngModel]="busqueda"
+            (ngModelChange)="onBusquedaInput($event)"
+            placeholder="Ej: ABC-123, Toyota...">
+        </div>
+
+        <div class="filter-item">
+          <label>Estado</label>
+          <select class="form-control" [(ngModel)]="estadoFiltro" (ngModelChange)="onFiltroChange()">
+            <option *ngFor="let e of estados" [value]="e.valor">{{e.label}}</option>
+          </select>
+        </div>
+
+        <div class="filter-item">
+          <label>Combustible</label>
+          <select class="form-control" [(ngModel)]="combustibleFiltro" (ngModelChange)="onFiltroChange()">
+            <option *ngFor="let c of combustibles" [value]="c.valor">{{c.label}}</option>
+          </select>
+        </div>
+
+        <div class="filter-item">
+          <label>&nbsp;</label>
+          <button class="btn btn-secondary" (click)="limpiarFiltros()">Limpiar Filtros</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Formulario -->
+  <div class="card" *ngIf="showForm">
+    <div class="card-header">
+      <h3>{{ form.id ? 'Editar Vehículo' : 'Nuevo Vehículo' }}</h3>
+    </div>
+    <div class="card-body">
+      <form (ngSubmit)="guardar()">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Placa *</label>
+            <input type="text" class="form-control" [(ngModel)]="form.placa" name="placa" required [disabled]="!!form.id" placeholder="Ej: ABC-1234">
+          </div>
+
+          <div class="form-group">
+            <label>Marca *</label>
+            <input type="text" class="form-control" [(ngModel)]="form.marca" name="marca" required placeholder="Ej: Toyota">
+          </div>
+
+          <div class="form-group">
+            <label>Modelo *</label>
+            <input type="text" class="form-control" [(ngModel)]="form.modelo" name="modelo" required placeholder="Ej: Corolla">
+          </div>
+
+          <div class="form-group">
+            <label>Año</label>
+            <input type="number" class="form-control" [(ngModel)]="form.anio" name="anio" min="1900" [max]="anioActual" placeholder="Ej: 2020">
+          </div>
+
+          <div class="form-group">
+            <label>Color</label>
+            <input type="text" class="form-control" [(ngModel)]="form.color" name="color" placeholder="Ej: Blanco">
+          </div>
+
+          <div class="form-group">
+            <label>Capacidad (pasajeros) *</label>
+            <input type="number" class="form-control" [(ngModel)]="form.capacidad" name="capacidad" required min="1" max="100" placeholder="Ej: 5">
+          </div>
+
+          <div class="form-group">
+            <label>Tipo de Combustible *</label>
+            <select class="form-control" [(ngModel)]="form.tipo_combustible" name="tipo_combustible" required>
+              <option value="">Seleccione...</option>
+              <option value="GASOLINA">Gasolina</option>
+              <option value="DIESEL">Diésel</option>
+              <option value="ELECTRICO">Eléctrico</option>
+              <option value="HIBRIDO">Híbrido</option>
+            </select>
+          </div>
+
+          <div class="form-group" *ngIf="form.id">
+            <label>Estado *</label>
+            <select class="form-control" [(ngModel)]="form.estado" name="estado" required>
+              <option value="DISPONIBLE">Disponible</option>
+              <option value="EN_USO">En Uso</option>
+              <option value="EN_REPARACION">En Reparación</option>
+              <option value="INACTIVO">Inactivo</option>
+            </select>
+          </div>
+
+          <div class="form-group" *ngIf="form.id">
+            <label>Kilometraje Actual (km)</label>
+            <input type="number" class="form-control" [(ngModel)]="form.kilometraje_actual" name="kilometraje_actual" min="0" step="0.01" placeholder="Ej: 50000.00">
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">
+            {{ form.id ? 'Actualizar' : 'Crear' }}
+          </button>
+          <button type="button" class="btn btn-secondary" (click)="cancelar()">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Tabla -->
+  <div class="card" *ngIf="!showForm">
+    <div class="card-body">
+      <div class="table-container">
+        <div class="table-overlay" *ngIf="cargando">
+          <div class="spinner"></div>
+        </div>
+
+        <div class="alert alert-danger" *ngIf="errorMensaje && !cargando">{{ errorMensaje }}</div>
+
+        <table class="table" *ngIf="!errorMensaje || vehiculos.length">
+          <thead>
+            <tr>
+              <th>Placa</th>
+              <th>Marca/Modelo</th>
+              <th>Año</th>
+              <th>Capacidad</th>
+              <th>Combustible</th>
+              <th>Kilometraje</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let v of vehiculos">
+              <td><strong>{{v.placa}}</strong></td>
+              <td>{{v.marca}} {{v.modelo}}</td>
+              <td>{{v.anio || '-'}}</td>
+              <td>{{v.capacidad}} pax</td>
+              <td>{{v.tipo_combustible}}</td>
+              <td>{{v.kilometraje_actual | number}} km</td>
+              <td>
+                <span class="badge" [ngClass]="getEstadoBadgeClass(v.estado)">
+                  {{v.estado.replace('_', ' ')}}
+                </span>
+              </td>
+              <td class="actions">
+                <button class="btn-icon" (click)="editar(v)" title="Editar">✏️</button>
+                <button class="btn-icon" (click)="eliminar(v)" title="Eliminar">🗑️</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Paginación -->
+        <div class="pagination" *ngIf="paginacion && paginacion.totalPaginas > 1">
+          <button 
+            class="btn-page" 
+            [disabled]="paginaActual === 1" 
+            (click)="cambiarPagina(paginaActual - 1)">
+            Anterior
+          </button>
+          <span class="page-info">Página {{paginaActual}} de {{paginacion.totalPaginas}}</span>
+          <button 
+            class="btn-page" 
+            [disabled]="paginaActual === paginacion.totalPaginas" 
+            (click)="cambiarPagina(paginaActual + 1)">
+            Siguiente
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

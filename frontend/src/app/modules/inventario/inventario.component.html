@@ -1,0 +1,350 @@
+<div class="module-container">
+  <!-- Header -->
+  <div class="header">
+    <h2>📦 Gestión de Inventario</h2>
+    <div class="header-actions" *ngIf="!mostrarFormulario">
+      <button class="btn-info" (click)="generarQRMasivo()" title="Generar QR para todos los items">
+        📱 Generar QR Masivo
+      </button>
+      <button class="btn-success" (click)="descargarReportePDF()">
+        📄 Reporte PDF
+      </button>
+      <button class="btn-primary" (click)="nuevoItem()">
+        + Nuevo Item
+      </button>
+      <button class="btn-secondary" (click)="irAlDashboard()">
+        Volver
+      </button>
+    </div>
+  </div>
+
+  <!-- Mensajes de error -->
+  <div class="error-message" *ngIf="errorMensaje">
+    {{ errorMensaje }}
+  </div>
+
+  <!-- Filtros -->
+  <div class="filters-section" *ngIf="!mostrarFormulario">
+    <div class="filter-group">
+      <label>Categoría:</label>
+      <select [(ngModel)]="categoriaFiltro" (change)="aplicarFiltros()">
+        <option [ngValue]="null">Todas</option>
+        <option *ngFor="let cat of categorias" [ngValue]="cat.id">
+          {{ cat.nombre }} ({{ cat.tipo }})
+        </option>
+      </select>
+    </div>
+    
+    <div class="search-box">
+      <input type="text" class="search-input" [ngModel]="busqueda" 
+             (ngModelChange)="onBusquedaInput($event)"
+             placeholder="Buscar por nombre, código...">
+    </div>
+    
+    <div class="checkbox-group">
+      <input type="checkbox" id="bajoStock" 
+             [(ngModel)]="solobajoStock" (change)="aplicarFiltros()">
+      <label for="bajoStock">Solo bajo stock</label>
+    </div>
+    
+    <div class="checkbox-group">
+      <input type="checkbox" id="incluirDesactivados" 
+             [(ngModel)]="incluirDesactivados" (change)="aplicarFiltros()">
+      <label for="incluirDesactivados">Incluir desactivados</label>
+    </div>
+
+    <button class="btn-primary" (click)="aplicarFiltros()">Aplicar</button>
+    <button class="btn-clear" (click)="limpiarFiltros()">Limpiar</button>
+  </div>
+  </div>
+
+  <!-- Formulario crear/editar -->
+  <div class="card mb-4" *ngIf="mostrarFormulario">
+    <div class="card-header">
+      <h5>{{ modoEdicion ? 'Editar Item' : 'Nuevo Item' }}</h5>
+    </div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-8">
+          <label class="form-label">Nombre *</label>
+          <input type="text" class="form-control" [(ngModel)]="itemForm.nombre" 
+                 placeholder="Ej: Filtro de aceite, Llanta 185/65R15, etc." required>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Categoría *</label>
+          <select class="form-select" [(ngModel)]="itemForm.categoria_id" required>
+            <option [ngValue]="0">Seleccione...</option>
+            <option *ngFor="let cat of categorias" [ngValue]="cat.id">
+              {{ cat.nombre }}
+            </option>
+          </select>
+        </div>
+        <div class="col-md-12">
+          <label class="form-label">Descripción</label>
+          <textarea class="form-control" [(ngModel)]="itemForm.descripcion" rows="2"
+                    placeholder="Descripción detallada del ítem"></textarea>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Stock Actual *</label>
+          <input type="number" class="form-control" [(ngModel)]="itemForm.stock_actual" 
+                 min="0" value="0" required>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Stock Mínimo *</label>
+          <input type="number" class="form-control" [(ngModel)]="itemForm.stock_minimo" 
+                 min="0" value="5" required>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Stock Máximo *</label>
+          <input type="number" class="form-control" [(ngModel)]="itemForm.stock_maximo" 
+                 min="0" value="100" required>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Unidad de Medida *</label>
+          <select class="form-select" [(ngModel)]="itemForm.unidad_medida" required>
+            <option value="UNIDAD">UNIDAD</option>
+            <option value="LITRO">LITRO</option>
+            <option value="GALON">GALÓN</option>
+            <option value="KG">KILOGRAMO</option>
+            <option value="METRO">METRO</option>
+            <option value="CAJA">CAJA</option>
+            <option value="PAQUETE">PAQUETE</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Precio Unitario (Bs.)</label>
+          <input type="number" class="form-control" [(ngModel)]="itemForm.precio_unitario" 
+                 min="0" step="0.01" placeholder="0.00">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Ubicación</label>
+          <input type="text" class="form-control" [(ngModel)]="itemForm.ubicacion" 
+                 placeholder="Ej: Almacén Principal - Estante A3">
+        </div>
+      </div>
+      <div class="mt-3">
+        <button class="btn btn-success me-2" (click)="guardarItem()" [disabled]="cargando">
+          <span *ngIf="!cargando">{{ modoEdicion ? 'Actualizar' : 'Crear' }}</span>
+          <span *ngIf="cargando" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+          <span *ngIf="cargando" class="ms-2">Procesando...</span>
+        </button>
+        <button class="btn btn-secondary" (click)="cancelarFormulario()">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabla de items -->
+  <div class="card" *ngIf="!mostrarFormulario">
+    <div class="card-body">
+      <!-- Overlay de carga sobre la tabla -->
+      <div class="table-overlay" *ngIf="cargando">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Cargando...</span>
+        </div>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th>Código QR</th>
+              <th>Nombre</th>
+              <th>Categoría</th>
+              <th>Stock Actual</th>
+              <th>Stock Mín/Máx</th>
+              <th>Unidad</th>
+              <th>Precio (Bs.)</th>
+              <th>Ubicación</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Se elimina la fila de carga, se usa overlay -->
+            <tr *ngIf="!cargando && items.length === 0">
+              <td colspan="10" class="text-center py-4 text-muted">
+                No se encontraron items de inventario
+              </td>
+            </tr>
+            <tr *ngFor="let item of items" [class.table-secondary]="!item.activo" [style.opacity]="item.activo ? '1' : '0.6'">
+              <td><code>{{ item.codigo_qr }}</code></td>
+              <td>
+                <strong>{{ item.nombre }}</strong>
+                <span *ngIf="!item.activo" class="badge bg-secondary ms-2">DESACTIVADO</span>
+                <br><small class="text-muted">{{ item.descripcion }}</small>
+              </td>
+              <td>
+                {{ item.categoria_nombre }}
+                <br><small class="text-muted">{{ item.categoria_tipo }}</small>
+              </td>
+              <td class="text-center">
+                <strong [class.text-danger]="item.stock_actual <= item.stock_minimo">
+                  {{ item.stock_actual }}
+                </strong>
+              </td>
+              <td class="text-center">
+                <small>{{ item.stock_minimo }} / {{ item.stock_maximo }}</small>
+              </td>
+              <td>{{ item.unidad_medida }}</td>
+              <td class="text-end">
+                <span *ngIf="item.precio_unitario">{{ item.precio_unitario | number:'1.2-2' }}</span>
+                <span *ngIf="!item.precio_unitario" class="text-muted">-</span>
+              </td>
+              <td><small>{{ item.ubicacion || '-' }}</small></td>
+              <td>
+                <span [ngClass]="obtenerClaseEstadoStock(item.estado_stock)">
+                  {{ item.estado_stock }}
+                </span>
+              </td>
+              <td>
+                <div class="btn-group btn-group-sm">
+                  <button class="btn btn-outline-info" (click)="descargarQR(item)" 
+                          title="Descargar QR">
+                    📱
+                  </button>
+                  <button class="btn btn-success" (click)="abrirModalMovimientos(item, 'ENTRADA')" 
+                          title="Entrada">
+                    +
+                  </button>
+                  <button class="btn btn-danger" (click)="abrirModalMovimientos(item, 'SALIDA')" 
+                          title="Salida">
+                    -
+                  </button>
+                  <button class="btn btn-warning" (click)="abrirModalMovimientos(item, 'AJUSTE')" 
+                          title="Ajuste">
+                    ⚙
+                  </button>
+                  <button class="btn btn-info" (click)="verHistorial(item)" title="Historial">
+                    📋
+                  </button>
+                  <button class="btn btn-primary" (click)="editarItem(item)" title="Editar">
+                    ✏️
+                  </button>
+                  <button class="btn btn-secondary" (click)="desactivarItem(item)" title="Desactivar">
+                    🗑️
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Paginación -->
+      <nav *ngIf="paginacion.totalPaginas > 1">
+        <ul class="pagination justify-content-center mb-0">
+          <li class="page-item" [class.disabled]="paginaActual === 1">
+            <button class="page-link" (click)="cambiarPagina(paginaActual - 1)">Anterior</button>
+          </li>
+          <li class="page-item" *ngFor="let p of obtenerPaginas()" 
+              [class.active]="p === paginaActual">
+            <button class="page-link" (click)="cambiarPagina(p)">{{ p }}</button>
+          </li>
+          <li class="page-item" [class.disabled]="paginaActual === paginacion.totalPaginas">
+            <button class="page-link" (click)="cambiarPagina(paginaActual + 1)">Siguiente</button>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </div>
+
+<!-- Modal de Movimientos -->
+<div class="modal fade" [class.show]="mostrarModalMovimientos" [style.display]="mostrarModalMovimientos ? 'block' : 'none'"
+     tabindex="-1" *ngIf="mostrarModalMovimientos">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          {{ tipoMovimiento === 'ENTRADA' ? 'Registrar Entrada' : 
+             tipoMovimiento === 'SALIDA' ? 'Registrar Salida' : 'Ajustar Stock' }}
+        </h5>
+        <button type="button" class="btn-close" (click)="cerrarModalMovimientos()"></button>
+      </div>
+      <div class="modal-body">
+        <p><strong>Item:</strong> {{ itemSeleccionado?.nombre }}</p>
+        <p><strong>Stock actual:</strong> {{ itemSeleccionado?.stock_actual }} {{ itemSeleccionado?.unidad_medida }}</p>
+
+        <div class="mb-3" *ngIf="tipoMovimiento !== 'AJUSTE'">
+          <label class="form-label">Cantidad *</label>
+          <input type="number" class="form-control" [(ngModel)]="cantidadMovimiento" min="1">
+        </div>
+
+        <div class="mb-3" *ngIf="tipoMovimiento === 'AJUSTE'">
+          <label class="form-label">Nuevo Stock *</label>
+          <input type="number" class="form-control" [(ngModel)]="nuevoStockAjuste" min="0">
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Motivo {{ tipoMovimiento === 'SALIDA' ? '*' : '' }}</label>
+          <textarea class="form-control" [(ngModel)]="motivoMovimiento" rows="3"
+                    placeholder="Ej: Mantenimiento vehículo ABC-123"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="cerrarModalMovimientos()">
+          Cancelar
+        </button>
+        <button type="button" class="btn btn-primary" (click)="registrarMovimiento()" [disabled]="cargando">
+          Registrar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal-backdrop fade" [class.show]="mostrarModalMovimientos" *ngIf="mostrarModalMovimientos"></div>
+
+<!-- Modal de Historial -->
+<div class="modal fade" [class.show]="mostrarHistorial" [style.display]="mostrarHistorial ? 'block' : 'none'"
+     tabindex="-1" *ngIf="mostrarHistorial">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Historial de Movimientos - {{ itemSeleccionado?.nombre }}</h5>
+        <button type="button" class="btn-close" (click)="cerrarHistorial()"></button>
+      </div>
+      <div class="modal-body">
+        <div class="table-responsive">
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Tipo</th>
+                <th>Cantidad</th>
+                <th>Stock Anterior</th>
+                <th>Stock Nuevo</th>
+                <th>Motivo</th>
+                <th>Usuario</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let mov of movimientos">
+                <td><small>{{ mov.creado_en | date:'short' }}</small></td>
+                <td>
+                  <span [ngClass]="obtenerClaseTipoMovimiento(mov.tipo_movimiento)">
+                    {{ mov.tipo_movimiento }}
+                  </span>
+                </td>
+                <td>{{ mov.cantidad }}</td>
+                <td>{{ mov.stock_anterior }}</td>
+                <td>{{ mov.stock_actual }}</td>
+                <td><small>{{ mov.motivo }}</small></td>
+                <td><small>{{ mov.nombres }} {{ mov.apellidos }}</small></td>
+              </tr>
+              <tr *ngIf="movimientos.length === 0">
+                <td colspan="7" class="text-center text-muted">No hay movimientos registrados</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="cerrarHistorial()">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop fade" [class.show]="mostrarHistorial" *ngIf="mostrarHistorial"></div>
