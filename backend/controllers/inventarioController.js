@@ -750,31 +750,53 @@ class InventarioController {
 
             // Verificar si el archivo QR existe
             if (!fs.existsSync(rutaQR)) {
-                // Si no existe, generarlo
-                await ModeloInventario.generarImagenQR(item.codigo_qr, item.id);
+                console.log(`🔄 Generando QR para item ${item.id}...`);
+                try {
+                    await ModeloInventario.generarImagenQR(item.codigo_qr, item.id);
+                    // Esperar un poco para asegurar que el archivo se escribió
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                } catch (genError) {
+                    console.error(`Error al generar QR para item ${item.id}:`, genError.message);
+                    return res.status(500).json({
+                        success: false,
+                        message: `Error al generar código QR: ${genError.message}`
+                    });
+                }
             }
 
             // Verificar nuevamente después de intentar generarlo
             if (!fs.existsSync(rutaQR)) {
                 return res.status(404).json({
                     success: false,
-                    message: 'No se pudo generar el código QR'
+                    message: 'No se pudo generar el código QR. Verifique los permisos del directorio.'
                 });
             }
 
             // Enviar el archivo
+            const nombreArchivo = `QR_${item.nombre.replace(/[^a-zA-Z0-9]/g, '_')}_${item.id}.png`;
             res.setHeader('Content-Type', 'image/png');
-            res.setHeader('Content-Disposition', `attachment; filename="QR_${item.nombre.replace(/\s+/g, '_')}_${item.id}.png"`);
+            res.setHeader('Content-Disposition', `attachment; filename="${nombreArchivo}"`);
             
             const stream = fs.createReadStream(rutaQR);
+            stream.on('error', (streamError) => {
+                console.error('Error leyendo archivo QR:', streamError.message);
+                if (!res.headersSent) {
+                    res.status(500).json({
+                        success: false,
+                        message: 'Error al leer el archivo QR'
+                    });
+                }
+            });
             stream.pipe(res);
 
         } catch (error) {
             console.error('Error en InventarioController.descargarQRItem:', error.message);
-            res.status(500).json({
-                success: false,
-                message: error.message
-            });
+            if (!res.headersSent) {
+                res.status(500).json({
+                    success: false,
+                    message: error.message
+                });
+            }
         }
     }
 
@@ -791,21 +813,45 @@ class InventarioController {
                 });
             }
 
+            console.log('🚀 Iniciando generación masiva de códigos QR...');
+
             // Obtener todos los ítems activos
-            const items = await ModeloInventario.obtenerTodosItems(1, 1000, { activo: true });
+            const resultado = await ModeloInventario.obtenerTodosItems(1, 1000, { activo: true });
+            const items = resultado.items || [];
             
+            if (items.length === 0) {
+                return res.json({
+                    success: true,
+                    message: 'No hay ítems para generar códigos QR',
+                    data: { generados: 0, errores: 0, total: 0 }
+                });
+            }
+
             let generados = 0;
             let errores = 0;
+            const erroresDetallados = [];
 
-            for (const item of items.items) {
-                try {
-                    await ModeloInventario.generarImagenQR(item.codigo_qr, item.id);
-                    generados++;
-                } catch (error) {
-                    console.error(`Error generando QR para ítem ${item.id}:`, error.message);
-                    errores++;
-                }
+            // Procesar en lotes de 10 para no saturar
+            const LOTE = 10;
+            for (let i = 0; i < items.length; i += LOTE) {
+                const lote = items.slice(i, i + LOTE);
+                const promesas = lote.map(async (item) => {
+                    try {
+                        await ModeloInventario.generarImagenQR(item.codigo_qr, item.id);
+                        generados++;
+                        return { exito: true, id: item.id };
+                    } catch (error) {
+                        errores++;
+                        erroresDetallados.push(`Item ${item.id}: ${error.message}`);
+                        return { exito: false, id: item.id, error: error.message };
+                    }
+                });
+
+                await Promise.all(promesas);
+                console.log(`📊 Progreso: ${Math.min(i + LOTE, items.length)}/${items.length} procesados`);
             }
+
+            console.log(`✅ Generación completada: ${generados} exitosos, ${errores} errores`);
 
             res.json({
                 success: true,
@@ -813,12 +859,13 @@ class InventarioController {
                 data: {
                     generados,
                     errores,
-                    total: items.items.length
+                    total: items.length,
+                    erroresDetallados: errores > 0 ? erroresDetallados.slice(0, 10) : []
                 }
             });
 
         } catch (error) {
-            console.error('Error en InventarioController.generarQRMasivo:', error.message);
+            console.error('❌ Error en InventarioController.generarQRMasivo:', error.message);
             res.status(500).json({
                 success: false,
                 message: error.message

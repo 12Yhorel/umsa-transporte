@@ -803,27 +803,51 @@ class ModeloInventario {
      */
     static async generarImagenQR(codigoQR, itemId) {
         try {
-            const qrCode = QRCode.image(codigoQR, { type: 'png' });
-            const qrPath = path.join(process.env.QR_CODES_PATH || './public/qr-codes', `inventario_${itemId}.png`);
+            // Determinar ruta absoluta del directorio QR
+            const qrDir = process.env.QR_CODES_PATH 
+                ? path.resolve(process.env.QR_CODES_PATH)
+                : path.join(__dirname, '..', 'public', 'qr-codes');
+            
+            const qrPath = path.join(qrDir, `inventario_${itemId}.png`);
             
             // Crear directorio si no existe
-            const dir = path.dirname(qrPath);
-            if (!fs.existsSync(dir)) {
-                fs.mkdirSync(dir, { recursive: true, mode: 0o777 });
+            if (!fs.existsSync(qrDir)) {
+                fs.mkdirSync(qrDir, { recursive: true, mode: 0o755 });
             }
 
-            // Guardar imagen
-            const writeStream = fs.createWriteStream(qrPath);
-            qrCode.pipe(writeStream);
+            // Verificar permisos de escritura
+            try {
+                fs.accessSync(qrDir, fs.constants.W_OK);
+            } catch (err) {
+                console.warn(`⚠️ Advertencia: Sin permisos de escritura en ${qrDir}`);
+                throw new Error('No se tienen permisos para escribir códigos QR');
+            }
 
-            // Esperar a que termine de escribir
+            // Generar y guardar imagen QR
             return new Promise((resolve, reject) => {
-                writeStream.on('finish', () => {
-                    resolve(`/qr-codes/inventario_${itemId}.png`);
-                });
-                writeStream.on('error', (error) => {
-                    reject(error);
-                });
+                try {
+                    const qrCode = QRCode.image(codigoQR, { type: 'png', size: 10 });
+                    const writeStream = fs.createWriteStream(qrPath, { mode: 0o644 });
+                    
+                    qrCode.pipe(writeStream);
+
+                    writeStream.on('finish', () => {
+                        console.log(`✅ QR generado: inventario_${itemId}.png`);
+                        resolve(`/qr-codes/inventario_${itemId}.png`);
+                    });
+
+                    writeStream.on('error', (error) => {
+                        console.error(`❌ Error escribiendo QR ${itemId}:`, error.message);
+                        reject(error);
+                    });
+
+                    qrCode.on('error', (error) => {
+                        console.error(`❌ Error generando imagen QR ${itemId}:`, error.message);
+                        reject(error);
+                    });
+                } catch (err) {
+                    reject(err);
+                }
             });
 
         } catch (error) {
