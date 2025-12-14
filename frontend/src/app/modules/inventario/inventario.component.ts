@@ -155,13 +155,6 @@ export class InventarioComponent implements OnInit, OnDestroy {
     this.filtrosChanges.next();
   }
 
-  descargarReportePDF(): void {
-    const filtros: any = {};
-    if (this.categoriaFiltro) filtros.categoria_id = this.categoriaFiltro;
-    if (this.solobajoStock) filtros.bajo_stock = 'true';
-    this.inventarioService.descargarReportePDF(filtros);
-  }
-
   cambiarPagina(pagina: number): void {
     if (pagina < 1 || pagina > this.paginacion.totalPaginas) return;
     this.paginaActual = pagina;
