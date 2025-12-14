@@ -218,6 +218,14 @@ class InventarioController {
             const { id } = req.params;
             const { cantidad, motivo, referencia_id } = req.body;
 
+            // Validar cantidad
+            if (!cantidad || cantidad <= 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'La cantidad debe ser mayor a 0'
+                });
+            }
+
             // Verificar permisos (solo administradores y técnicos)
             if (req.usuario.rol_id !== 1 && req.usuario.rol_id !== 2) {
                 return res.status(403).json({
@@ -257,6 +265,22 @@ class InventarioController {
             const { id } = req.params;
             const { cantidad, motivo, referencia_id } = req.body;
 
+            // Validar cantidad
+            if (!cantidad || cantidad <= 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'La cantidad debe ser mayor a 0'
+                });
+            }
+
+            // Validar motivo obligatorio para salidas
+            if (!motivo || motivo.trim() === '') {
+                return res.status(400).json({
+                    success: false,
+                    message: 'El motivo es obligatorio para salidas de stock'
+                });
+            }
+
             // Verificar permisos (solo administradores y técnicos)
             if (req.usuario.rol_id !== 1 && req.usuario.rol_id !== 2) {
                 return res.status(403).json({
@@ -289,12 +313,20 @@ class InventarioController {
     }
 
     /**
-     * Ajustar stock
+     * Ajustar stock de un ítem
      */
     static async ajustarStock(req, res) {
         try {
             const { id } = req.params;
             const { nuevo_stock, motivo } = req.body;
+
+            // Validar nuevo_stock
+            if (nuevo_stock === undefined || nuevo_stock === null || nuevo_stock < 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'El nuevo stock debe ser un número mayor o igual a 0'
+                });
+            }
 
             // Verificar permisos (solo administradores)
             if (req.usuario.rol_id !== 1) {

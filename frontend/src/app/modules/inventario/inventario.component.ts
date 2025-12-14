@@ -206,12 +206,34 @@ export class InventarioComponent implements OnInit, OnDestroy {
   }
 
   guardarItem(): void {
-    if (!this.itemForm.nombre || !this.itemForm.categoria_id) {
-      alert('Nombre y categoría son requeridos');
+    // Validaciones
+    if (!this.itemForm.nombre || this.itemForm.nombre.trim() === '') {
+      alert('El nombre del ítem es requerido');
+      return;
+    }
+
+    if (!this.itemForm.categoria_id || this.itemForm.categoria_id === 0) {
+      alert('Debe seleccionar una categoría');
+      return;
+    }
+
+    if (this.itemForm.stock_actual === undefined || this.itemForm.stock_actual < 0) {
+      alert('El stock actual debe ser mayor o igual a 0');
+      return;
+    }
+
+    if (this.itemForm.stock_minimo === undefined || this.itemForm.stock_minimo < 0) {
+      alert('El stock mínimo debe ser mayor o igual a 0');
+      return;
+    }
+
+    if (this.itemForm.stock_maximo === undefined || this.itemForm.stock_maximo < this.itemForm.stock_minimo) {
+      alert('El stock máximo debe ser mayor o igual al stock mínimo');
       return;
     }
 
     this.cargando = true;
+    this.errorMensaje = '';
 
     if (this.modoEdicion && this.itemSeleccionado) {
       // Eliminar campos de solo lectura antes de enviar
@@ -294,17 +316,38 @@ export class InventarioComponent implements OnInit, OnDestroy {
   registrarMovimiento(): void {
     if (!this.itemSeleccionado) return;
 
-    if (this.tipoMovimiento !== 'AJUSTE' && this.cantidadMovimiento <= 0) {
-      alert('La cantidad debe ser mayor a 0');
-      return;
-    }
-
-    if (this.tipoMovimiento === 'SALIDA' && !this.motivoMovimiento) {
-      alert('El motivo es requerido para salidas');
-      return;
+    // Validaciones específicas por tipo de movimiento
+    if (this.tipoMovimiento === 'ENTRADA') {
+      if (!this.cantidadMovimiento || this.cantidadMovimiento <= 0) {
+        alert('La cantidad de entrada debe ser mayor a 0');
+        return;
+      }
+    } else if (this.tipoMovimiento === 'SALIDA') {
+      if (!this.cantidadMovimiento || this.cantidadMovimiento <= 0) {
+        alert('La cantidad de salida debe ser mayor a 0');
+        return;
+      }
+      if (!this.motivoMovimiento || this.motivoMovimiento.trim() === '') {
+        alert('El motivo es obligatorio para salidas de stock');
+        return;
+      }
+      if (this.cantidadMovimiento > this.itemSeleccionado.stock_actual) {
+        alert(`Stock insuficiente. Disponible: ${this.itemSeleccionado.stock_actual}`);
+        return;
+      }
+    } else if (this.tipoMovimiento === 'AJUSTE') {
+      if (this.nuevoStockAjuste === undefined || this.nuevoStockAjuste < 0) {
+        alert('El nuevo stock debe ser mayor o igual a 0');
+        return;
+      }
+      if (!this.motivoMovimiento || this.motivoMovimiento.trim() === '') {
+        alert('El motivo es obligatorio para ajustes de stock');
+        return;
+      }
     }
 
     this.cargando = true;
+    this.errorMensaje = '';
     let obs;
 
     if (this.tipoMovimiento === 'ENTRADA') {
@@ -407,6 +450,15 @@ export class InventarioComponent implements OnInit, OnDestroy {
 
   irAlDashboard(): void {
     this.router.navigate(['/dashboard']);
+  }
+
+  descargarReportePDF(): void {
+    const filtros: any = {};
+    if (this.categoriaFiltro) filtros.categoria_id = this.categoriaFiltro;
+    if (this.busqueda) filtros.busqueda = this.busqueda;
+    if (this.solobajoStock) filtros.bajo_stock = true;
+    
+    this.inventarioService.descargarReportePDF(filtros);
   }
 
   /**

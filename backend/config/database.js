@@ -8,14 +8,18 @@ const configuracionBD = {
   database: process.env.DB_NAME || 'gestion_transporte_umsa',
   port: process.env.DB_PORT || 3306,
   waitForConnections: true,
-  connectionLimit: 20,
-  queueLimit: 0,
-  maxIdle: 5,
-  idleTimeout: 30000,
+  connectionLimit: parseInt(process.env.DB_POOL_MAX) || 50,  // Aumentado para manejar más concurrencia
+  queueLimit: 0,  // Sin límite de cola para evitar rechazos
+  maxIdle: parseInt(process.env.DB_POOL_MIN) || 10,  // Más conexiones idle
+  idleTimeout: 60000,  // 60 segundos antes de cerrar conexión idle
   enableKeepAlive: true,
-  keepAliveInitialDelay: 0,
+  keepAliveInitialDelay: 10000,
   charset: 'utf8mb4',
-  connectTimeout: 10000,
+  connectTimeout: 20000,  // Aumentado a 20 segundos
+  acquireTimeout: 20000,  // Timeout para adquirir conexión
+  timeout: 60000,  // Timeout de query a 60 segundos
+  multipleStatements: false,  // Seguridad
+  namedPlaceholders: true,  // Soporte para placeholders nombrados
   // Soporte para PlanetScale y otras bases de datos en la nube con SSL
   ...(process.env.DB_SSL === 'true' && {
     ssl: {
@@ -39,51 +43,68 @@ const probarConexion = async () => {
   }
 };
 
-// Ejecutar consultas SQL
+// Ejecutar consultas SQL con mejor manejo de concurrencia
 const ejecutarConsulta = async (sql, parametros = []) => {
   const inicio = Date.now();
   let conexion;
+  let intentos = 0;
+  const maxIntentos = 3;
   
-  try {
-    const poolState = pool.pool;
-    const conexionesLibres = poolState._freeConnections?.length || 0;
-    const conexionesUsadas = poolState._allConnections?.length - conexionesLibres || 0;
-    
-    if (conexionesLibres === 0) {
-      console.warn(`Pool sin conexiones libres. En uso: ${conexionesUsadas}/20`);
+  while (intentos < maxIntentos) {
+    try {
+      // Obtener conexión del pool con timeout
+      conexion = await pool.getConnection();
+      
+      // Ejecutar consulta con timeout
+      const [rows, fields] = await conexion.execute(sql, parametros);
+      
+      const duracion = Date.now() - inicio;
+      
+      // Log solo consultas muy lentas
+      if (duracion > 2000) {
+        console.warn(`⚠️ Consulta lenta (${duracion}ms): ${sql.substring(0, 80)}...`);
+      }
+      
+      // Liberar conexión inmediatamente
+      conexion.release();
+      return [rows, fields];
+      
+    } catch (error) {
+      // Liberar conexión si existe
+      if (conexion) {
+        try {
+          conexion.release();
+        } catch (releaseError) {
+          console.error('Error liberando conexión:', releaseError.message);
+        }
+      }
+      
+      intentos++;
+      
+      // Si es el último intento o error no recuperable, lanzar error
+      if (intentos >= maxIntentos || !esErrorRecuperable(error)) {
+        const duracion = Date.now() - inicio;
+        console.error(`❌ Error ejecutando consulta (${duracion}ms, intentos: ${intentos}):`, error.message);
+        throw error;
+      }
+      
+      // Esperar antes de reintentar (backoff exponencial)
+      await new Promise(resolve => setTimeout(resolve, Math.pow(2, intentos) * 100));
     }
-    
-    conexion = await Promise.race([
-      pool.getConnection(),
-      new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout obteniendo conexión')), 5000)
-      )
-    ]);
-    
-    const [rows, fields] = await Promise.race([
-      conexion.execute(sql, parametros),
-      new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout ejecutando consulta')), 10000)
-      )
-    ]);
-    
-    const duracion = Date.now() - inicio;
-    
-    if (duracion > 1000) {
-      console.warn(`Consulta lenta (${duracion}ms): ${sql.substring(0, 100)}...`);
-    }
-    
-    conexion.release();
-    return [rows, fields];
-    
-  } catch (error) {
-    if (conexion) conexion.release();
-    
-    const duracion = Date.now() - inicio;
-    console.error(`Error ejecutando consulta (${duracion}ms):`, error.message);
-    console.error(`SQL: ${sql.substring(0, 150)}...`);
-    throw error;
   }
+};
+
+// Verificar si un error es recuperable
+const esErrorRecuperable = (error) => {
+  const codigosRecuperables = [
+    'ECONNRESET',
+    'ETIMEDOUT',
+    'PROTOCOL_CONNECTION_LOST',
+    'PROTOCOL_ENQUEUE_AFTER_FATAL_ERROR'
+  ];
+  return codigosRecuperables.includes(error.code) || 
+         error.message.includes('Too many connections') ||
+         error.message.includes('deadlock');
 };
 
 const obtenerConexion = async () => {

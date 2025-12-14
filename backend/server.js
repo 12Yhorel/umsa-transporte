@@ -127,16 +127,23 @@ class ServidorUMSA {
             next();
         });
 
-        // Timeout global para todas las peticiones API (5 segundos)
+        // Timeout global optimizado para peticiones API
         this.app.use((req, res, next) => {
             if (req.path && req.path.startsWith('/api/')) {
-                req.setTimeout(5000, () => {
-                    console.log(`[TIMEOUT] Timeout en petición: ${req.method} ${req.originalUrl}`);
+                // Timeout más largo para operaciones complejas
+                const timeout = req.path.includes('/dashboard') || 
+                               req.path.includes('/reportes') ? 30000 : 15000;
+                
+                req.setTimeout(timeout, () => {
+                    console.warn(`⏱️ Timeout (${timeout}ms): ${req.method} ${req.originalUrl}`);
                     if (!res.headersSent) {
-                        res.status(408).json({ error: 'Request timeout' });
+                        res.status(408).json({ 
+                            error: 'Request timeout',
+                            message: 'La operación tomó demasiado tiempo. Inténtalo nuevamente.'
+                        });
                     }
                 });
-                res.setTimeout(5000);
+                res.setTimeout(timeout);
             }
             next();
         });
