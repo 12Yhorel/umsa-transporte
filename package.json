@@ -25,7 +25,7 @@
     "files": [
       "electron/**/*",
       "backend/**/*",
-      "backend/node_modules/**/*",
+      "!backend/node_modules/**/*",
       {
         "from": "frontend/dist",
         "to": "frontend/dist",
@@ -37,6 +37,13 @@
       "!backend/test-qr.js",
       "!backend/generate-jwt-secret.js",
       "!backend/regenerar-qrs.sh"
+    ],
+    "extraResources": [
+      {
+        "from": "backend/node_modules",
+        "to": "backend/node_modules",
+        "filter": ["**/*"]
+      }
     ],
     "win": {
       "target": "nsis"
