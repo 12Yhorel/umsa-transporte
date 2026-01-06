@@ -34,6 +34,11 @@ function startBackend() {
     if (fs.existsSync(backendPath)) {
       console.log('✅ Archivo backend encontrado');
 
+      // Cambiar al directorio del backend para que los requires relativos funcionen
+      const backendDir = path.dirname(backendPath);
+      process.chdir(backendDir);
+      console.log('📂 Cambiado cwd a:', backendDir);
+
       // Setear variables de entorno para el backend
       process.env.PORT = '3001';
       process.env.HOST = '127.0.0.1';
