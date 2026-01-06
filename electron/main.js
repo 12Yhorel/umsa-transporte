@@ -7,23 +7,34 @@ let mainWindow = null;
 
 function startBackend() {
   console.log('Iniciando backend...');
-  // En producción, el backend está en resources/app/backend/
-  const backendPath = path.join(process.resourcesPath, 'backend', 'server.js');
-  // En desarrollo, está en ../backend/server.js
-  const devBackendPath = path.join(__dirname, '..', 'backend', 'server.js');
+  console.log('Directorio actual:', process.cwd());
+  console.log('Directorio resources:', process.resourcesPath);
+  console.log('¿Empaquetado?', app.isPackaged);
 
-  const finalBackendPath = app.isPackaged ? backendPath : devBackendPath;
+  // En producción, el backend está en el mismo directorio que main.js
+  const backendPath = app.isPackaged
+    ? path.join(process.resourcesPath, 'app', 'backend', 'server.js')
+    : path.join(__dirname, '..', 'backend', 'server.js');
 
-  console.log('Ruta del backend:', finalBackendPath);
+  console.log('Ruta del backend:', backendPath);
 
-  backendProcess = spawn(process.execPath, [finalBackendPath], {
+  // Verificar que el archivo existe
+  if (require('fs').existsSync(backendPath)) {
+    console.log('Archivo backend encontrado');
+  } else {
+    console.error('Archivo backend NO encontrado:', backendPath);
+  }
+
+  backendProcess = spawn(process.execPath, [backendPath], {
     stdio: ['pipe', 'pipe', 'pipe'],
     env: {
       ...process.env,
       NODE_ENV: 'production',
       PORT: '3001'
     },
-    cwd: app.isPackaged ? path.join(process.resourcesPath, 'backend') : path.join(__dirname, '..', 'backend')
+    cwd: app.isPackaged
+      ? path.join(process.resourcesPath, 'app', 'backend')
+      : path.join(__dirname, '..', 'backend')
   });
 
   backendProcess.stdout.on('data', (data) => {
@@ -71,13 +82,14 @@ function createWindow() {
     let indexPath;
     if (app.isPackaged) {
       // En el empaquetado, los archivos están en resources/app/frontend/dist/
-      indexPath = path.join(process.resourcesPath, 'frontend', 'dist', 'umsa-transporte-frontend', 'index.html');
+      indexPath = path.join(process.resourcesPath, 'app', 'frontend', 'dist', 'umsa-transporte-frontend', 'index.html');
     } else {
       // En desarrollo empaquetado local
       indexPath = path.join(__dirname, '..', 'frontend', 'dist', 'umsa-transporte-frontend', 'index.html');
     }
 
     console.log('Cargando archivo local:', indexPath);
+    console.log('¿Archivo existe?', require('fs').existsSync(indexPath));
 
     // Verificar que el archivo existe
     const fs = require('fs');
@@ -85,7 +97,8 @@ function createWindow() {
       console.log('Archivo encontrado, cargando...');
       mainWindow.loadFile(indexPath);
     } else {
-      console.error('Archivo no encontrado:', indexPath);
+      console.error('Archivo NO encontrado:', indexPath);
+      console.log('Contenido del directorio resources/app:', fs.readdirSync(path.join(process.resourcesPath, 'app')));
       mainWindow.loadURL('data:text/html,<h1>Error: Frontend no encontrado</h1><p>Archivo esperado: ' + indexPath + '</p>');
     }
   }

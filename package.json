@@ -28,31 +28,21 @@
       "electron/**/*",
       "backend/**/*",
       "frontend/dist/**/*",
-      "!backend/node_modules/**/*",
-      "!frontend/node_modules/**/*",
       "!frontend/src/**/*",
       "!frontend/**/*.map",
       "!**/*.log",
-      "!**/.git/**/*"
-    ],
-    "extraResources": [
-      {
-        "from": "backend",
-        "to": "backend",
-        "filter": ["**/*", "!node_modules/**/*", "!**/*.log"]
-      }
+      "!**/.git/**/*",
+      "!backend/test-qr.js",
+      "!backend/generate-jwt-secret.js",
+      "!backend/regenerar-qrs.sh"
     ],
     "win": {
-      "target": "nsis",
-      "icon": "electron/icon.ico"
+      "target": "nsis"
     },
     "nsis": {
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
-      "installerIcon": "electron/icon.ico",
-      "uninstallerIcon": "electron/icon.ico",
-      "installerHeaderIcon": "electron/icon.ico",
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "UMSA Transporte"
