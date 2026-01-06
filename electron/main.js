@@ -34,6 +34,11 @@ function startBackend() {
     if (fs.existsSync(backendPath)) {
       console.log('✅ Archivo backend encontrado');
 
+      // Setear variables de entorno para el backend
+      process.env.PORT = '3001';
+      process.env.HOST = '127.0.0.1';
+      process.env.NODE_ENV = 'production';
+
       // Ejecutar el backend en el mismo proceso
       try {
         require(backendPath);
