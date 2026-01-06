@@ -97,7 +97,35 @@ class ServidorUMSA {
 
         // CORS configurado para la aplicación UMSA
         this.app.use(cors({
-            origin: process.env.FRONTEND_URL || 'http://localhost:4200',
+            origin: function (origin, callback) {
+                // Permitir requests sin origin (como desde aplicaciones Electron o mobile)
+                if (!origin) return callback(null, true);
+
+                const allowedOrigins = [
+                    'http://localhost:4200',  // Desarrollo Angular
+                    'http://127.0.0.1:4200',  // Desarrollo alternativo
+                    'http://localhost:3000',  // Puerto alternativo
+                    'file://',                // Aplicación Electron empaquetada
+                    /^file:\/\//             // Cualquier URL file://
+                ];
+
+                // Verificar si el origin está permitido
+                const isAllowed = allowedOrigins.some(allowed => {
+                    if (typeof allowed === 'string') {
+                        return origin === allowed;
+                    } else if (allowed instanceof RegExp) {
+                        return allowed.test(origin);
+                    }
+                    return false;
+                });
+
+                if (isAllowed) {
+                    callback(null, true);
+                } else {
+                    console.log('🚫 Origin no permitido:', origin);
+                    callback(new Error('Not allowed by CORS'));
+                }
+            },
             methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
             allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
             credentials: true,
