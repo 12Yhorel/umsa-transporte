@@ -6,6 +6,23 @@ const { spawn } = require('child_process');
 let backendProcess = null;
 let mainWindow = null;
 
+// Prevenir múltiples instancias de la aplicación
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  app.quit();
+  return;
+}
+
+// Manejar segunda instancia
+app.on('second-instance', (event, commandLine, workingDirectory) => {
+  console.log('⚠️ Intento de abrir segunda instancia, enfocando ventana existente...');
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.focus();
+  }
+});
+
 function startBackend() {
   try {
     console.log('🔧 Iniciando backend...');
