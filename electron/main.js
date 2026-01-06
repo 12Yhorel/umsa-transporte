@@ -19,12 +19,13 @@ function startBackend() {
     if (fs.existsSync(backendPath)) {
       console.log('✅ Archivo backend encontrado');
 
-      backendProcess = spawn(process.execPath, [backendPath], {
+      backendProcess = spawn(app.isPackaged ? process.execPath : 'node', [backendPath], {
         stdio: ['pipe', 'pipe', 'pipe'],
         env: {
           ...process.env,
           NODE_ENV: 'production',
-          PORT: '3001'
+          PORT: '3001',
+          HOST: '127.0.0.1'
         },
         cwd: app.isPackaged
           ? path.join(process.resourcesPath, 'app', 'backend')
@@ -33,6 +34,10 @@ function startBackend() {
 
       backendProcess.stdout.on('data', (data) => {
         console.log('📤 Backend stdout:', data.toString());
+        // Si vemos que el servidor está listo, marcar como iniciado
+        if (data.toString().includes('🚀 SISTEMA DE LA UNIDAD DE TRANSPORTE') || data.toString().includes('listening')) {
+          console.log('🎉 Backend iniciado correctamente');
+        }
       });
 
       backendProcess.stderr.on('data', (data) => {
@@ -46,6 +51,11 @@ function startBackend() {
       backendProcess.on('close', (code) => {
         console.log(`🔚 Backend finalizó con código ${code}`);
       });
+
+      // Verificar que el backend esté respondiendo
+      setTimeout(() => {
+        checkBackendHealth();
+      }, 5000); // Verificar después de 5 segundos
     } else {
       console.error('❌ Archivo backend NO encontrado:', backendPath);
     }
@@ -56,6 +66,13 @@ function startBackend() {
 
 function createWindow() {
   try {
+    // Prevenir múltiples ventanas
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      console.log('⚠️  Ventana ya existe, enfocándola...');
+      mainWindow.focus();
+      return;
+    }
+
     console.log('🚀 Iniciando creación de ventana...');
 
     mainWindow = new BrowserWindow({
@@ -113,7 +130,35 @@ function createWindow() {
   }
 }
 
-function loadFrontend() {
+function checkBackendHealth() {
+  const http = require('http');
+
+  console.log('🔍 Verificando estado del backend en http://127.0.0.1:3001...');
+
+  const options = {
+    hostname: '127.0.0.1',
+    port: 3001,
+    path: '/',
+    method: 'GET',
+    timeout: 3000
+  };
+
+  const req = http.request(options, (res) => {
+    console.log('✅ Backend responde correctamente - Status:', res.statusCode);
+  });
+
+  req.on('error', (err) => {
+    console.error('❌ Backend no responde:', err.message);
+    console.log('⚠️  El backend podría no estar iniciándose correctamente');
+  });
+
+  req.on('timeout', () => {
+    console.error('⏰ Timeout verificando backend');
+    req.destroy();
+  });
+
+  req.end();
+}
   try {
     console.log('🔍 Buscando archivos del frontend...');
 
@@ -199,8 +244,15 @@ app.whenReady().then(() => {
   createWindow();
 
   app.on('activate', () => {
+    // Prevenir múltiples ventanas en macOS
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();
+    } else {
+      // Si ya hay ventanas, enfocar la existente
+      const windows = BrowserWindow.getAllWindows();
+      if (windows.length > 0) {
+        windows[0].focus();
+      }
     }
   });
 });
