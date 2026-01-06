@@ -1,7 +1,7 @@
 {
   "name": "umsa-transporte-electron",
   "version": "1.0.0",
-  "main": "electron/main.js",
+  "main": "electron/main_simple.js",
   "private": true,
   "description": "Electron wrapper para UMSA Transporte (frontend Angular + backend Node)",
   "scripts": {
