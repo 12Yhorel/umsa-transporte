@@ -93,7 +93,7 @@ function createWindow() {
     console.log('✅ DevTools abiertos');
 
     // Cargar una página de carga inicial
-    mainWindow.loadURL('data:text/html,<html><head><style>body{font-family:Arial,sans-serif;padding:20px;background:#f0f0f0;}h1{color:#2c3e50;}</style></head><body><h1>🚀 UMSA Transporte</h1><p>Iniciando aplicación...</p><p>Si ves esto, Electron está funcionando correctamente.</p><p><strong>IMPORTANTE:</strong> Revisa la consola (DevTools) para ver los logs de diagnóstico.</p><div id="status">Cargando...</div><script>setTimeout(()=>{document.getElementById("status").innerHTML="DevTools listos - revisa la consola para más información";},1000);</script></body></html>');
+    mainWindow.loadURL(`data:text/html,<html><head><style>body{font-family:Arial,sans-serif;padding:20px;background:#f0f0f0;}h1{color:#2c3e50;}</style></head><body><h1>🚀 UMSA Transporte</h1><p>Iniciando aplicación...</p><p>Si ves esto, Electron está funcionando correctamente.</p><p><strong>IMPORTANTE:</strong> Revisa la consola (DevTools) para ver los logs de diagnóstico.</p><div id="status">Cargando...</div><script>setTimeout(()=>{document.getElementById("status").innerHTML="DevTools listos - revisa la consola para más información";},1000);</script></body></html>`);
     console.log('✅ Página de carga inicial mostrada');
 
     mainWindow.once('ready-to-show', () => {
@@ -125,7 +125,7 @@ function createWindow() {
         contextIsolation: true
       }
     });
-    errorWindow.loadURL('data:text/html,<h1>❌ Error crítico</h1><p>' + error.message + '</p>');
+    errorWindow.loadURL(`data:text/html,<h1>❌ Error crítico</h1><p>${error.message}</p>`);
     errorWindow.webContents.openDevTools();
   }
 }
@@ -159,6 +159,8 @@ function checkBackendHealth() {
 
   req.end();
 }
+
+function loadFrontend() {
   try {
     console.log('🔍 Buscando archivos del frontend...');
 
@@ -223,12 +225,12 @@ function checkBackendHealth() {
         console.error('Error en diagnóstico:', e.message);
       }
 
-      mainWindow.loadURL('data:text/html,<h1>❌ Frontend no encontrado</h1><p>Archivo esperado: ' + indexPath + '</p><p>Revisa la consola para el diagnóstico completo.</p>');
+      mainWindow.loadURL(`data:text/html,<h1>❌ Frontend no encontrado</h1><p>Archivo esperado: ${indexPath}</p><p>Revisa la consola para el diagnóstico completo.</p>`);
     }
 
   } catch (error) {
     console.error('❌ Error en loadFrontend:', error);
-    mainWindow.loadURL('data:text/html,<h1>❌ Error al cargar frontend</h1><p>' + error.message + '</p>');
+    mainWindow.loadURL(`data:text/html,<h1>❌ Error al cargar frontend</h1><p>${error.message}</p>`);
   }
 }
 
