@@ -1,9 +1,11 @@
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const { spawn } = require('child_process');
 
 console.log('🚀 Iniciando Electron main process');
 
+let backendProcess = null;
 let mainWindow = null;
 
 // Prevenir múltiples instancias de la aplicación
@@ -46,24 +48,27 @@ function startBackend() {
       process.env.HOST = '127.0.0.1';
       process.env.NODE_ENV = 'production';
 
-      // Ejecutar el backend en el mismo proceso
-      try {
-        require(backendPath);
-        console.log('🎉 Backend iniciado correctamente en el mismo proceso');
-      } catch (error) {
-        console.error('❌ Error al cargar el backend:', error);
-        // Mostrar ventana de error
-        const errorWindow = new BrowserWindow({
-          width: 600,
-          height: 400,
-          webPreferences: {
-            nodeIntegration: false,
-            contextIsolation: true
-          }
-        });
-        errorWindow.loadURL(`data:text/html,<h1>❌ Error al iniciar backend</h1><p>${error.message}</p><p>Revisa la consola para más detalles.</p>`);
-        errorWindow.webContents.openDevTools();
-      }
+      // Ejecutar el backend en un proceso separado
+      backendProcess = spawn(process.execPath, [backendPath], {
+        stdio: 'inherit',
+        env: {
+          ...process.env,
+          PORT: '3001',
+          HOST: '127.0.0.1',
+          NODE_ENV: 'production'
+        },
+        cwd: backendDir
+      });
+
+      console.log('🚀 Backend process iniciado con PID:', backendProcess.pid);
+
+      backendProcess.on('error', (err) => {
+        console.error('❌ Error al iniciar backend:', err);
+      });
+
+      backendProcess.on('close', (code) => {
+        console.log(`🔚 Backend finalizó con código ${code}`);
+      });
 
       // Verificar que el backend esté respondiendo
       setTimeout(() => {
@@ -282,9 +287,15 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   console.log('🔽 Cerrando aplicación...');
+  if (backendProcess) {
+    backendProcess.kill();
+  }
   if (process.platform !== 'darwin') app.quit();
 });
 
 app.on('before-quit', () => {
   console.log('👋 Aplicación cerrándose...');
+  if (backendProcess) {
+    backendProcess.kill();
+  }
 });
