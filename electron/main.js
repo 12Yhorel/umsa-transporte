@@ -1,7 +1,7 @@
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const { spawn } = require('child_process');
+const { fork } = require('child_process');
 
 let backendProcess = null;
 let mainWindow = null;
@@ -36,7 +36,7 @@ function startBackend() {
     if (fs.existsSync(backendPath)) {
       console.log('✅ Archivo backend encontrado');
 
-      backendProcess = spawn(app.isPackaged ? process.execPath : 'node', [backendPath], {
+      backendProcess = fork(backendPath, [], {
         stdio: ['pipe', 'pipe', 'pipe'],
         env: {
           ...process.env,
