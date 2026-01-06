@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 
 console.log('🚀 Iniciando Electron main process');
+fs.writeFileSync('debug.log', '🚀 Iniciando Electron main process\n');
 
 let mainWindow = null;
 
@@ -26,20 +27,24 @@ let mainWindow = null;
 function startBackend() {
   try {
     console.log('🔧 Iniciando backend...');
+    fs.appendFileSync('debug.log', '🔧 Iniciando backend...\n');
 
     const backendPath = app.isPackaged
       ? path.join(process.resourcesPath, 'app', 'backend', 'server.js')
       : path.join(__dirname, '..', 'backend', 'server.js');
 
     console.log('📍 Ruta del backend:', backendPath);
+    fs.appendFileSync('debug.log', `📍 Ruta del backend: ${backendPath}\n`);
 
     if (fs.existsSync(backendPath)) {
       console.log('✅ Archivo backend encontrado');
+      fs.appendFileSync('debug.log', '✅ Archivo backend encontrado\n');
 
       // Cambiar al directorio del backend para que los requires relativos funcionen
       const backendDir = path.dirname(backendPath);
       process.chdir(backendDir);
       console.log('📂 Cambiado cwd a:', backendDir);
+      fs.appendFileSync('debug.log', `📂 Cambiado cwd a: ${backendDir}\n`);
 
       // Setear variables de entorno para el backend
       process.env.PORT = '3001';
@@ -50,8 +55,10 @@ function startBackend() {
       try {
         require(backendPath);
         console.log('🎉 Backend iniciado correctamente en el mismo proceso');
+        fs.appendFileSync('debug.log', '🎉 Backend iniciado correctamente en el mismo proceso\n');
       } catch (error) {
         console.error('❌ Error al cargar el backend:', error);
+        fs.appendFileSync('debug.log', `❌ Error al cargar el backend: ${error}\n`);
       }
 
       // Verificar que el backend esté respondiendo
@@ -60,9 +67,11 @@ function startBackend() {
       }, 5000); // Verificar después de 5 segundos
     } else {
       console.error('❌ Archivo backend NO encontrado:', backendPath);
+      fs.appendFileSync('debug.log', `❌ Archivo backend NO encontrado: ${backendPath}\n`);
     }
   } catch (error) {
     console.error('❌ Error en startBackend:', error);
+    fs.appendFileSync('debug.log', `❌ Error en startBackend: ${error}\n`);
   }
 }
 
@@ -240,23 +249,29 @@ function loadFrontend() {
 app.whenReady().then(() => {
   try {
     console.log('🎉 App Electron lista');
+    fs.appendFileSync('debug.log', '🎉 App Electron lista\n');
     console.log('📦 Is packaged:', app.isPackaged);
+    fs.appendFileSync('debug.log', `📦 Is packaged: ${app.isPackaged}\n`);
 
     // Solo iniciar backend automáticamente en versión empaquetada
     if (app.isPackaged) {
       console.log('🚀 Iniciando backend en modo empaquetado');
+      fs.appendFileSync('debug.log', '🚀 Iniciando backend en modo empaquetado\n');
       try {
         startBackend();
       } catch (error) {
         console.error('❌ Error al iniciar backend:', error);
+        fs.appendFileSync('debug.log', `❌ Error al iniciar backend: ${error}\n`);
       }
     } else {
       console.log('🌐 Modo desarrollo - backend iniciado por concurrently');
+      fs.appendFileSync('debug.log', '🌐 Modo desarrollo - backend iniciado por concurrently\n');
     }
 
     createWindow();
   } catch (error) {
     console.error('❌ Error en app.whenReady:', error);
+    fs.appendFileSync('debug.log', `❌ Error en app.whenReady: ${error}\n`);
   }
 
   app.on('activate', () => {
