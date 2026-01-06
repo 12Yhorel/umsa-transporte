@@ -35,9 +35,12 @@ function startBackend() {
       console.log('✅ Archivo backend encontrado');
 
       // Ejecutar el backend en el mismo proceso
-      require(backendPath);
-
-      console.log('🎉 Backend iniciado correctamente en el mismo proceso');
+      try {
+        require(backendPath);
+        console.log('🎉 Backend iniciado correctamente en el mismo proceso');
+      } catch (error) {
+        console.error('❌ Error al cargar el backend:', error);
+      }
 
       // Verificar que el backend esté respondiendo
       setTimeout(() => {
