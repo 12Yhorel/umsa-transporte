@@ -233,10 +233,13 @@ function loadFrontend() {
 app.whenReady().then(() => {
   console.log('🎉 App Electron lista');
 
-  try {
-    startBackend();
-  } catch (error) {
-    console.error('❌ Error al iniciar backend:', error);
+  // Solo iniciar backend automáticamente en versión empaquetada
+  if (app.isPackaged) {
+    try {
+      startBackend();
+    } catch (error) {
+      console.error('❌ Error al iniciar backend:', error);
+    }
   }
 
   createWindow();
