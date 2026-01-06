@@ -31,10 +31,31 @@
       "!backend/node_modules/**/*",
       "!frontend/node_modules/**/*",
       "!frontend/src/**/*",
-      "!frontend/**/*.map"
+      "!frontend/**/*.map",
+      "!**/*.log",
+      "!**/.git/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "backend",
+        "to": "backend",
+        "filter": ["**/*", "!node_modules/**/*", "!**/*.log"]
+      }
     ],
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "electron/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "electron/icon.ico",
+      "uninstallerIcon": "electron/icon.ico",
+      "installerHeaderIcon": "electron/icon.ico",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "UMSA Transporte"
     }
   }
 }

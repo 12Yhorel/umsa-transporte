@@ -2,7 +2,79 @@
 
 Instrucciones rápidas para ejecutar la aplicación como escritorio usando Electron.
 
-1) Requisitos
+## 🔧 Solución para Pantalla en Blanco
+
+Si ves una pantalla en blanco al ejecutar la aplicación empaquetada:
+
+### 1. Verificar Build del Frontend
+Asegúrate de que el frontend esté construido correctamente:
+```bash
+cd frontend
+npm run build
+```
+Debe crear la carpeta `dist/umsa-transporte-frontend/`
+
+### 2. Verificar Backend
+El backend se inicia automáticamente. Revisa la consola de Electron (F12) para ver logs del backend.
+
+### 3. Problemas Comunes
+- **Archivo no encontrado**: Verifica que `frontend/dist/umsa-transporte-frontend/index.html` existe
+- **Backend no inicia**: Revisa permisos de ejecución en `backend/server.js`
+- **BD no conecta**: Asegúrate de que MySQL esté corriendo en puerto 3306
+
+## 📁 Icono de la Aplicación
+
+Para personalizar el icono:
+
+1. Crea un archivo `icon.ico` (256x256 recomendado)
+2. Colócalo en `electron/assets/icon.ico`
+3. Actualiza `package.json`:
+   ```json
+   "win": {
+     "icon": "electron/assets/icon.ico"
+   },
+   "nsis": {
+     "installerIcon": "electron/assets/icon.ico",
+     "uninstallerIcon": "electron/assets/icon.ico",
+     "installerHeaderIcon": "electron/assets/icon.ico"
+   }
+   ```
+
+## 🚀 Modos de Ejecución
+
+### Desarrollo
+```bash
+# Arranca backend + frontend + Electron
+ELECTRON_START_BACKEND=true npm run electron:dev
+```
+
+### Producción (Archivos Locales)
+```bash
+# Construye y ejecuta
+npm run electron:prod
+```
+
+### Empaquetado
+```bash
+# Genera instalador .exe
+npm run dist:win
+```
+
+## 🐛 Debug
+
+- Abre DevTools con F12
+- Revisa logs en consola
+- Verifica rutas de archivos con `console.log(process.resourcesPath)`
+
+## 📋 Checklist Pre-Empaquetado
+
+- [ ] Frontend construido (`npm run build`)
+- [ ] Backend probado (`npm start` en backend/)
+- [ ] Base de datos configurada
+- [ ] Icono agregado (opcional)
+- [ ] `package.json` actualizado con configuración de build
+
+## 📋 Requisitos
 - Node.js 18+
 - Instalar dependencias en la raíz:
 
@@ -12,28 +84,3 @@ npm install
 ```
 
 También se instalarán las dependencias de `backend` y `frontend` por separado cuando las uses.
-
-2) Modo desarrollo (recomendado durante el desarrollo)
-- Este modo lanza `backend` y `frontend` en dev servers y luego abre Electron apuntando a `http://localhost:4200`.
-
-```bash
-# Desde la raíz del proyecto
-ELECTRON_START_BACKEND=true npm run electron:dev
-```
-
-3) Modo producción (estático)
-- Construye el frontend y luego lanza Electron que cargará los archivos estáticos.
-
-```bash
-# Desde la raíz
-npm run electron:build-frontend
-# Finalmente (modo producción)
-npm run electron:prod
-```
-
-4) Empaquetado
-- Para empaquetar la app (Windows / macOS / Linux) recomendamos usar `electron-builder` o `electron-forge`.
-- Añade un script y configuración específica según la herramienta elegida.
-
-5) Notas
-- En este primer esqueleto la comunicación entre UI y backend usa HTTP como en la versión web. Si quieres comunicación directa por IPC (más segura), puedo añadir canales con `ipcMain`/`ipcRenderer` y exponer funciones en `preload.js`.
