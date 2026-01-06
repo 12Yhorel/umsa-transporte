@@ -1,9 +1,7 @@
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const { fork } = require('child_process');
 
-let backendProcess = null;
 let mainWindow = null;
 
 // Prevenir múltiples instancias de la aplicación
@@ -36,30 +34,10 @@ function startBackend() {
     if (fs.existsSync(backendPath)) {
       console.log('✅ Archivo backend encontrado');
 
-      backendProcess = fork(backendPath, [], {
-        stdio: 'inherit',
-        env: {
-          ...process.env,
-          NODE_ENV: 'production',
-          PORT: '3001',
-          HOST: '127.0.0.1'
-        },
-        cwd: app.isPackaged
-          ? path.join(process.resourcesPath, 'app', 'backend')
-          : path.join(__dirname, '..', 'backend')
-      });
+      // Ejecutar el backend en el mismo proceso
+      require(backendPath);
 
-      console.log('🚀 Backend process iniciado con PID:', backendProcess.pid);
-
-      // Con stdio 'inherit', los logs del backend aparecerán directamente en la consola
-
-      backendProcess.on('error', (err) => {
-        console.error('❌ Error al iniciar backend:', err);
-      });
-
-      backendProcess.on('close', (code) => {
-        console.log(`🔚 Backend finalizó con código ${code}`);
-      });
+      console.log('🎉 Backend iniciado correctamente en el mismo proceso');
 
       // Verificar que el backend esté respondiendo
       setTimeout(() => {
@@ -270,15 +248,9 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   console.log('🔽 Cerrando aplicación...');
-  if (backendProcess) {
-    backendProcess.kill();
-  }
   if (process.platform !== 'darwin') app.quit();
 });
 
 app.on('before-quit', () => {
   console.log('👋 Aplicación cerrándose...');
-  if (backendProcess) {
-    backendProcess.kill();
-  }
 });
