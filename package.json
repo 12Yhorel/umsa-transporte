@@ -21,22 +21,16 @@
   "build": {
     "appId": "com.umsa.transporte",
     "productName": "UMSA Transporte",
-    "extraResources": [
-      {
-        "from": "frontend/dist",
-        "to": "frontend/dist"
-      }
-    ],
-    "directories": {
-      "output": "dist",
-      "buildResources": "electron/assets"
-    },
+    "asar": false,
     "files": [
       "electron/**/*",
       "backend/**/*",
-      "frontend/dist/**/*",
+      {
+        "from": "frontend/dist",
+        "to": "frontend/dist",
+        "filter": ["**/*", "!**/*.map"]
+      },
       "!frontend/src/**/*",
-      "!frontend/**/*.map",
       "!**/*.log",
       "!**/.git/**/*",
       "!backend/test-qr.js",
