@@ -129,9 +129,17 @@ function loadFrontend() {
 
     let indexPath;
     if (app.isPackaged) {
+      // Primero intentar la ruta desempaquetada (sin asar)
       indexPath = path.join(process.resourcesPath, 'app', 'frontend', 'dist', 'frontend', 'index.html');
-      console.log('📍 Ruta empaquetada:', indexPath);
+      console.log('📍 Ruta sin asar:', indexPath);
+
+      if (!fs.existsSync(indexPath)) {
+        // Si no existe, intentar la ruta empaquetada
+        indexPath = path.join(process.resourcesPath, 'app.asar', 'frontend', 'dist', 'frontend', 'index.html');
+        console.log('📍 Ruta con asar:', indexPath);
+      }
     } else {
+      // En desarrollo empaquetado local
       indexPath = path.join(__dirname, '..', 'frontend', 'dist', 'frontend', 'index.html');
       console.log('📍 Ruta desarrollo:', indexPath);
     }
