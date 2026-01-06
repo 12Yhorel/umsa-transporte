@@ -21,7 +21,11 @@
   "build": {
     "appId": "com.umsa.transporte",
     "productName": "UMSA Transporte",
-    "asar": false,
+    "asar": true,
+    "asarUnpack": [
+      "electron/**/*",
+      "frontend/dist/**/*"
+    ],
     "files": [
       "electron/**/*",
       "backend/**/*",
