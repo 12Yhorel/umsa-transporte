@@ -238,22 +238,26 @@ function loadFrontend() {
 }
 
 app.whenReady().then(() => {
-  console.log('🎉 App Electron lista');
-  console.log('📦 Is packaged:', app.isPackaged);
+  try {
+    console.log('🎉 App Electron lista');
+    console.log('📦 Is packaged:', app.isPackaged);
 
-  // Solo iniciar backend automáticamente en versión empaquetada
-  if (app.isPackaged) {
-    console.log('🚀 Iniciando backend en modo empaquetado');
-    try {
-      startBackend();
-    } catch (error) {
-      console.error('❌ Error al iniciar backend:', error);
+    // Solo iniciar backend automáticamente en versión empaquetada
+    if (app.isPackaged) {
+      console.log('🚀 Iniciando backend en modo empaquetado');
+      try {
+        startBackend();
+      } catch (error) {
+        console.error('❌ Error al iniciar backend:', error);
+      }
+    } else {
+      console.log('🌐 Modo desarrollo - backend iniciado por concurrently');
     }
-  } else {
-    console.log('🌐 Modo desarrollo - backend iniciado por concurrently');
-  }
 
-  createWindow();
+    createWindow();
+  } catch (error) {
+    console.error('❌ Error en app.whenReady:', error);
+  }
 
   app.on('activate', () => {
     // Prevenir múltiples ventanas en macOS
