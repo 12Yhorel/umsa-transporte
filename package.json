@@ -1,6 +1,7 @@
 {
   "name": "umsa-transporte-electron",
   "version": "1.0.0",
+  "main": "electron/main.js",
   "private": true,
   "description": "Electron wrapper para UMSA Transporte (frontend Angular + backend Node)",
   "scripts": {
@@ -16,6 +17,25 @@
     "electron": "^26.0.0",
     "wait-on": "^7.0.0",
     "electron-builder": "^24.0.0"
+  },
+  "build": {
+    "appId": "com.umsa.transporte",
+    "productName": "UMSA Transporte",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      "backend/**/*",
+      "frontend/dist/**/*",
+      "!backend/node_modules/**/*",
+      "!frontend/node_modules/**/*",
+      "!frontend/src/**/*",
+      "!frontend/**/*.map"
+    ],
+    "win": {
+      "target": "nsis"
+    }
   }
 }
 
