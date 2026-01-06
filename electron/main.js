@@ -2,6 +2,8 @@ const { app, BrowserWindow } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
+console.log('🚀 Iniciando Electron main process');
+
 let mainWindow = null;
 
 // Prevenir múltiples instancias de la aplicación
