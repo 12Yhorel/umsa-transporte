@@ -37,7 +37,7 @@ function startBackend() {
       console.log('✅ Archivo backend encontrado');
 
       backendProcess = fork(backendPath, [], {
-        stdio: ['pipe', 'pipe', 'pipe'],
+        stdio: 'inherit',
         env: {
           ...process.env,
           NODE_ENV: 'production',
@@ -49,17 +49,9 @@ function startBackend() {
           : path.join(__dirname, '..', 'backend')
       });
 
-      backendProcess.stdout.on('data', (data) => {
-        console.log('📤 Backend stdout:', data.toString());
-        // Si vemos que el servidor está listo, marcar como iniciado
-        if (data.toString().includes('🚀 SISTEMA DE LA UNIDAD DE TRANSPORTE') || data.toString().includes('listening')) {
-          console.log('🎉 Backend iniciado correctamente');
-        }
-      });
+      console.log('🚀 Backend process iniciado con PID:', backendProcess.pid);
 
-      backendProcess.stderr.on('data', (data) => {
-        console.error('📥 Backend stderr:', data.toString());
-      });
+      // Con stdio 'inherit', los logs del backend aparecerán directamente en la consola
 
       backendProcess.on('error', (err) => {
         console.error('❌ Error al iniciar backend:', err);
