@@ -121,27 +121,32 @@ function createWindow() {
 
           // Listar contenido del directorio resources para debug
           try {
-            console.log('Contenido de process.resourcesPath:');
-            const resourcesContent = fs.readdirSync(process.resourcesPath);
-            resourcesContent.forEach(item => {
-              console.log('  -', item);
-              if (item === 'app') {
-                console.log('  Contenido de app/:');
-                const appContent = fs.readdirSync(path.join(process.resourcesPath, 'app'));
-                appContent.forEach(subItem => {
-                  console.log('    -', subItem);
-                  if (subItem === 'frontend') {
-                    console.log('    Contenido de frontend/:');
-                    const frontendContent = fs.readdirSync(path.join(process.resourcesPath, 'app', 'frontend'));
-                    frontendContent.forEach(frontItem => {
-                      console.log('      -', frontItem);
-                    });
+            console.log('=== DIAGNÓSTICO DE ARCHIVOS ===');
+            console.log('process.resourcesPath:', process.resourcesPath);
+
+            function listDirectory(dirPath, prefix = '') {
+              try {
+                const items = fs.readdirSync(dirPath);
+                items.forEach(item => {
+                  const fullPath = path.join(dirPath, item);
+                  const stats = fs.statSync(fullPath);
+                  const isDirectory = stats.isDirectory();
+                  console.log(`${prefix}${isDirectory ? '📁' : '📄'} ${item}`);
+
+                  if (isDirectory && item !== 'node_modules' && prefix.length < 40) {
+                    listDirectory(fullPath, prefix + '  ');
                   }
                 });
+              } catch (e) {
+                console.log(`${prefix}❌ Error al leer: ${e.message}`);
               }
-            });
+            }
+
+            console.log('Contenido completo de resources:');
+            listDirectory(process.resourcesPath);
+
           } catch (e) {
-            console.error('Error al listar directorio:', e.message);
+            console.error('Error en diagnóstico:', e.message);
           }
         }
       } else {
