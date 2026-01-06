@@ -85,16 +85,72 @@ function createWindow() {
       mainWindow.loadURL('http://localhost:4200');
     } else {
       // Modo producción: cargar archivos locales
+      console.log('Modo producción - buscando archivos locales');
+      console.log('process.resourcesPath:', process.resourcesPath);
+      console.log('__dirname:', __dirname);
+
       let indexPath;
       if (app.isPackaged) {
-        // En el empaquetado, los archivos están en resources/app/frontend/dist/
-        indexPath = path.join(process.resourcesPath, 'app', 'frontend', 'dist', 'umsa-transporte-frontend', 'index.html');
+        // En el empaquetado, los archivos están en resources/app/frontend/dist/frontend/
+        indexPath = path.join(process.resourcesPath, 'app', 'frontend', 'dist', 'frontend', 'index.html');
+        console.log('Ruta empaquetada calculada:', indexPath);
+
+        // Verificar si existe en esta ruta
+        if (fs.existsSync(indexPath)) {
+          console.log('✅ Archivo encontrado en ruta empaquetada');
+        } else {
+          console.log('❌ Archivo NO encontrado en ruta empaquetada');
+
+          // Intentar otras rutas posibles
+          const possiblePaths = [
+            path.join(process.resourcesPath, 'frontend', 'dist', 'frontend', 'index.html'),
+            path.join(process.resourcesPath, 'app', 'frontend', 'dist', 'index.html'),
+            path.join(process.resourcesPath, 'frontend', 'dist', 'index.html'),
+            path.join(process.resourcesPath, 'index.html')
+          ];
+
+          for (const testPath of possiblePaths) {
+            if (fs.existsSync(testPath)) {
+              console.log('✅ Archivo encontrado en ruta alternativa:', testPath);
+              indexPath = testPath;
+              break;
+            } else {
+              console.log('❌ No encontrado en:', testPath);
+            }
+          }
+
+          // Listar contenido del directorio resources para debug
+          try {
+            console.log('Contenido de process.resourcesPath:');
+            const resourcesContent = fs.readdirSync(process.resourcesPath);
+            resourcesContent.forEach(item => {
+              console.log('  -', item);
+              if (item === 'app') {
+                console.log('  Contenido de app/:');
+                const appContent = fs.readdirSync(path.join(process.resourcesPath, 'app'));
+                appContent.forEach(subItem => {
+                  console.log('    -', subItem);
+                  if (subItem === 'frontend') {
+                    console.log('    Contenido de frontend/:');
+                    const frontendContent = fs.readdirSync(path.join(process.resourcesPath, 'app', 'frontend'));
+                    frontendContent.forEach(frontItem => {
+                      console.log('      -', frontItem);
+                    });
+                  }
+                });
+              }
+            });
+          } catch (e) {
+            console.error('Error al listar directorio:', e.message);
+          }
+        }
       } else {
         // En desarrollo empaquetado local
-        indexPath = path.join(__dirname, '..', 'frontend', 'dist', 'umsa-transporte-frontend', 'index.html');
+        indexPath = path.join(__dirname, '..', 'frontend', 'dist', 'frontend', 'index.html');
+        console.log('Ruta desarrollo calculada:', indexPath);
       }
 
-      console.log('Cargando archivo local:', indexPath);
+      console.log('Ruta final a cargar:', indexPath);
       console.log('¿Archivo existe?', fs.existsSync(indexPath));
 
       // Verificar que el archivo existe
@@ -103,12 +159,7 @@ function createWindow() {
         mainWindow.loadFile(indexPath);
       } else {
         console.error('Archivo NO encontrado:', indexPath);
-        try {
-          console.log('Contenido del directorio resources/app:', fs.readdirSync(path.join(process.resourcesPath, 'app')));
-        } catch (e) {
-          console.error('Error al leer directorio:', e.message);
-        }
-        mainWindow.loadURL('data:text/html,<h1>Error: Frontend no encontrado</h1><p>Archivo esperado: ' + indexPath + '</p><p>Verifica que el build del frontend se haya completado correctamente.</p>');
+        mainWindow.loadURL('data:text/html,<h1>Error: Frontend no encontrado</h1><p>Archivo esperado: ' + indexPath + '</p><p>Revisa los logs de consola para más detalles sobre la estructura de archivos.</p>');
       }
     }
 
