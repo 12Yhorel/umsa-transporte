@@ -52,6 +52,17 @@ function startBackend() {
         console.log('🎉 Backend iniciado correctamente en el mismo proceso');
       } catch (error) {
         console.error('❌ Error al cargar el backend:', error);
+        // Mostrar ventana de error
+        const errorWindow = new BrowserWindow({
+          width: 600,
+          height: 400,
+          webPreferences: {
+            nodeIntegration: false,
+            contextIsolation: true
+          }
+        });
+        errorWindow.loadURL(`data:text/html,<h1>❌ Error al iniciar backend</h1><p>${error.message}</p><p>Revisa la consola para más detalles.</p>`);
+        errorWindow.webContents.openDevTools();
       }
 
       // Verificar que el backend esté respondiendo
@@ -245,11 +256,7 @@ app.whenReady().then(() => {
     // Solo iniciar backend automáticamente en versión empaquetada
     if (app.isPackaged) {
       console.log('🚀 Iniciando backend en modo empaquetado');
-      try {
-        startBackend();
-      } catch (error) {
-        console.error('❌ Error al iniciar backend:', error);
-      }
+      startBackend();
     } else {
       console.log('🌐 Modo desarrollo - backend iniciado por concurrently');
     }
