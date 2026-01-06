@@ -91,8 +91,9 @@ class ServidorUMSA {
         // Limitación de tasa de requests - TEMPORALMENTE COMENTADO
         // this.app.use(limitadorPeticiones);
 
-        // Middleware para cancelar peticiones duplicadas/concurrentes
-        this.app.use(cancelarPeticionesAnteriores());
+        // Middleware para cancelar peticiones duplicadas/concurrentes - DESACTIVADO TEMPORALMENTE
+        // Este middleware puede estar causando problemas de conexiones colgadas
+        // this.app.use(cancelarPeticionesAnteriores());
 
         // CORS configurado para la aplicación UMSA
         this.app.use(cors({
@@ -127,12 +128,12 @@ class ServidorUMSA {
             next();
         });
 
-        // Timeout global optimizado para peticiones API
+        // Timeout global optimizado para peticiones API - AUMENTADOS
         this.app.use((req, res, next) => {
             if (req.path && req.path.startsWith('/api/')) {
-                // Timeout más largo para operaciones complejas
+                // Timeout mucho más largo para evitar cortes prematuros
                 const timeout = req.path.includes('/dashboard') || 
-                               req.path.includes('/reportes') ? 30000 : 15000;
+                               req.path.includes('/reportes') ? 120000 : 60000; // 2min y 1min
                 
                 req.setTimeout(timeout, () => {
                     console.warn(`⏱️ Timeout (${timeout}ms): ${req.method} ${req.originalUrl}`);
@@ -255,9 +256,9 @@ class ServidorUMSA {
             total: totalConexiones,
             libres: conexionesLibres,
             usadas: conexionesUsadas,
-            limite: 50,
-            porcentajeUso: ((conexionesUsadas / 50) * 100).toFixed(2) + '%',
-            estado: conexionesUsadas < 40 ? 'SALUDABLE' : conexionesUsadas < 45 ? 'ADVERTENCIA' : 'CRITICO',
+            limite: 100,
+            porcentajeUso: ((conexionesUsadas / 100) * 100).toFixed(2) + '%',
+            estado: conexionesUsadas < 80 ? 'SALUDABLE' : conexionesUsadas < 90 ? 'ADVERTENCIA' : 'CRITICO',
             timestamp: new Date().toISOString()
         };
 
@@ -375,17 +376,24 @@ class ServidorUMSA {
         const señales = ['SIGINT', 'SIGTERM', 'SIGQUIT'];
         
         señales.forEach(signal => {
-            process.on(signal, () => {
+            process.on(signal, async () => {
                 console.log(`\n📦 Recibida señal ${signal}. Cerrando servidor gracefulmente...`);
                 
-                this.servidor.close((err) => {
+                this.servidor.close(async (err) => {
                     if (err) {
                         console.error('❌ Error cerrando servidor:', err);
-                        process.exit(1);
+                    }
+                    
+                    // Cerrar pool de conexiones de base de datos
+                    try {
+                        const { cerrarPool } = require('./config/database');
+                        await cerrarPool();
+                    } catch (error) {
+                        console.error('❌ Error cerrando pool:', error.message);
                     }
                     
                     console.log('✅ Servidor cerrado correctamente. Hasta pronto! 👋');
-                    process.exit(0);
+                    process.exit(err ? 1 : 0);
                 });
 
                 // Force close después de 10 segundos

@@ -8,18 +8,15 @@ const configuracionBD = {
   database: process.env.DB_NAME || 'gestion_transporte_umsa',
   port: process.env.DB_PORT || 3306,
   waitForConnections: true,
-  connectionLimit: parseInt(process.env.DB_POOL_MAX) || 50,  // Aumentado para manejar más concurrencia
-  queueLimit: 0,  // Sin límite de cola para evitar rechazos
-  maxIdle: parseInt(process.env.DB_POOL_MIN) || 10,  // Más conexiones idle
-  idleTimeout: 60000,  // 60 segundos antes de cerrar conexión idle
+  connectionLimit: 100,  // Aumentado significativamente
+  queueLimit: 0,  // Sin límite de cola
+  maxIdle: 20,  // Más conexiones idle disponibles
+  idleTimeout: 30000,  // 30 segundos antes de cerrar conexión idle
   enableKeepAlive: true,
   keepAliveInitialDelay: 10000,
   charset: 'utf8mb4',
-  connectTimeout: 20000,  // Aumentado a 20 segundos
-  acquireTimeout: 20000,  // Timeout para adquirir conexión
-  timeout: 60000,  // Timeout de query a 60 segundos
+  connectTimeout: 10000,  // 10 segundos para conectar
   multipleStatements: false,  // Seguridad
-  namedPlaceholders: true,  // Soporte para placeholders nombrados
   // Soporte para PlanetScale y otras bases de datos en la nube con SSL
   ...(process.env.DB_SSL === 'true' && {
     ssl: {
@@ -52,28 +49,30 @@ const ejecutarConsulta = async (sql, parametros = []) => {
   
   while (intentos < maxIntentos) {
     try {
-      // Obtener conexión del pool con timeout
+      // Obtener conexión del pool
       conexion = await pool.getConnection();
       
-      // Ejecutar consulta con timeout
+      // Ejecutar consulta
       const [rows, fields] = await conexion.execute(sql, parametros);
       
       const duracion = Date.now() - inicio;
       
       // Log solo consultas muy lentas
-      if (duracion > 2000) {
+      if (duracion > 3000) {
         console.warn(`⚠️ Consulta lenta (${duracion}ms): ${sql.substring(0, 80)}...`);
       }
       
-      // Liberar conexión inmediatamente
+      // CRÍTICO: Liberar conexión inmediatamente en try
       conexion.release();
+      conexion = null;
       return [rows, fields];
       
     } catch (error) {
-      // Liberar conexión si existe
+      // CRÍTICO: Liberar conexión en el catch
       if (conexion) {
         try {
           conexion.release();
+          conexion = null;
         } catch (releaseError) {
           console.error('Error liberando conexión:', releaseError.message);
         }
@@ -88,7 +87,7 @@ const ejecutarConsulta = async (sql, parametros = []) => {
         throw error;
       }
       
-      // Esperar antes de reintentar (backoff exponencial)
+      // Esperar antes de reintentar (backoff exponencial: 100ms, 200ms, 400ms)
       await new Promise(resolve => setTimeout(resolve, Math.pow(2, intentos) * 100));
     }
   }
@@ -107,7 +106,49 @@ const esErrorRecuperable = (error) => {
          error.message.includes('deadlock');
 };
 
+// Devuelve una conexión "envuelta" que libera automáticamente la conexión
+// después de ejecutar `execute` o `query`. Esto evita fugas cuando el
+// código obtiene una conexión y olvida liberarla.
 const obtenerConexion = async () => {
+  const conn = await pool.getConnection();
+  let released = false;
+  const release = () => {
+    if (!released) {
+      try {
+        conn.release();
+      } catch (e) {
+        // ignorar
+      }
+      released = true;
+    }
+  };
+
+  return {
+    execute: async (sql, params = []) => {
+      try {
+        return await conn.execute(sql, params);
+      } finally {
+        release();
+      }
+    },
+    query: async (sql, params = []) => {
+      try {
+        return await conn.query(sql, params);
+      } finally {
+        release();
+      }
+    },
+    // Si necesitas la conexión raw para transacciones u operaciones avanzadas,
+    // usa `obtenerConexionRaw()` en su lugar.
+    raw: conn,
+    _release: release
+  };
+};
+
+// Obtener la conexión raw si se necesitan transacciones o múltiples operaciones
+// en la misma conexión. En ese caso el desarrollador debe llamar a
+// `conexion.release()` manualmente.
+const obtenerConexionRaw = async () => {
   return await pool.getConnection();
 };
 
@@ -137,21 +178,42 @@ const cerrarPool = async () => {
   }
 };
 
+// Monitoreo del estado del pool cada 30 segundos
 setInterval(async () => {
   try {
     const poolState = pool.pool;
+    const conexionesActivas = poolState._allConnections?.length || 0;
     const conexionesLibres = poolState._freeConnections?.length || 0;
-    if (conexionesLibres > 5) {
-      console.log(`Limpieza de conexiones: ${conexionesLibres} disponibles`);
+    const conexionesUsadas = conexionesActivas - conexionesLibres;
+    
+    console.log(`📊 Pool Status: ${conexionesUsadas}/${conexionesActivas} en uso, ${conexionesLibres} libres`);
+    
+    // Alerta si hay muy pocas conexiones libres
+    if (conexionesLibres === 0 && conexionesActivas > 0) {
+      console.warn(`⚠️ ALERTA: No hay conexiones libres disponibles (${conexionesActivas} en uso)`);
     }
-  } catch (error) {}
-}, 300000);
+  } catch (error) {
+    console.error('Error monitoreando pool:', error.message);
+  }
+}, 30000); // Cada 30 segundos
+
+// Limpiar conexiones inactivas
+setInterval(async () => {
+  try {
+    const conexion = await pool.getConnection();
+    await conexion.ping();
+    conexion.release();
+  } catch (error) {
+    console.error('Error en keep-alive:', error.message);
+  }
+}, 60000); // Cada 60 segundos
 
 module.exports = { 
   pool, 
   probarConexion, 
   ejecutarConsulta, 
   obtenerConexion, 
+  obtenerConexionRaw,
   conectarBD,
   verificarConexionBD,
   cerrarPool
