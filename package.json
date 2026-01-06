@@ -9,7 +9,7 @@
     "electron:serve": "ELECTRON_DEV=true electron .",
     "electron:build-frontend": "cd frontend && npm run build",
     "electron:prod": "npm run electron:build-frontend && electron .",
-    "dist:win": "npm run electron:build-frontend && node -e \"const fs=require('fs'); const path=require('path'); if(!fs.existsSync('frontend/dist/frontend/index.html')){console.error('ERROR: Frontend no construido. Ejecuta: npm run electron:build-frontend'); process.exit(1);}\" && electron-builder --win nsis",
+    "dist:win": "cd backend && npm install && cd .. && npm run electron:build-frontend && node -e \"const fs=require('fs'); const path=require('path'); if(!fs.existsSync('frontend/dist/frontend/index.html')){console.error('ERROR: Frontend no construido. Ejecuta: npm run electron:build-frontend'); process.exit(1);}\" && electron-builder --win nsis",
     "dist:all": "npm run electron:build-frontend && electron-builder -mwl"
   },
   "devDependencies": {
@@ -25,6 +25,7 @@
     "files": [
       "electron/**/*",
       "backend/**/*",
+      "backend/node_modules/**/*",
       {
         "from": "frontend/dist",
         "to": "frontend/dist",
